@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi perfil — InmoLocal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/perfil.css">
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+
+  <header class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo"><span class="logo-icon">⌂</span><span class="logo-text">InmoLocal</span></a>
+      <nav class="nav-links">
+        <a href="index.html">Inicio</a>
+        <a href="chat.html">Mensajes</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="publicar.html" class="btn-primary">+ Publicar</a>
+        <div class="avatar-wrap">
+          <div class="avatar-fallback" id="navAvatar">U</div>
+          <div class="dropdown-menu">
+            <a href="perfil.html">Mi perfil</a>
+            <a href="mis-propiedades.html">Mis propiedades</a>
+            <a href="chat.html">Mensajes</a>
+            <hr>
+            <a href="#" id="logoutBtn" class="logout">Cerrar sesión</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="perfil-page">
+    <div class="container">
+
+      <!-- ══ PERFIL HEADER ══ -->
+      <div class="perfil-header">
+        <div class="perfil-avatar-wrap">
+          <div class="perfil-avatar" id="perfilAvatar">U</div>
+          <label class="perfil-avatar-change" title="Cambiar foto">
+            📷
+            <input type="file" id="avatarInput" accept="image/*" style="display:none">
+          </label>
+        </div>
+        <div class="perfil-info">
+          <h1 id="perfilNombre">Tu nombre</h1>
+          <p id="perfilEmail" class="perfil-email">tucorreo@ejemplo.com</p>
+          <div class="perfil-badges">
+            <span class="pbadge">✓ Cuenta activa</span>
+            <span class="pbadge pbadge-gold" id="badgeVerificado" style="display:none">⭐ Verificado</span>
+          </div>
+        </div>
+        <div class="perfil-stats">
+          <div class="pstat"><span class="pstat-num" id="statProps">0</span><span>Propiedades</span></div>
+          <div class="pstat"><span class="pstat-num" id="statVistas">0</span><span>Visitas totales</span></div>
+          <div class="pstat"><span class="pstat-num" id="statMsgs">0</span><span>Mensajes</span></div>
+        </div>
+      </div>
+
+      <!-- ══ TABS ══ -->
+      <div class="perfil-tabs">
+        <button class="ptab active" data-tab="propiedades">Mis propiedades</button>
+        <button class="ptab" data-tab="datos">Mis datos</button>
+        <button class="ptab" data-tab="favoritos">Favoritos</button>
+        <button class="ptab" data-tab="seguridad">Seguridad</button>
+      </div>
+
+      <!-- ─── TAB: Mis propiedades ─── -->
+      <div class="ptab-content active" id="tab-propiedades">
+        <div class="tab-header">
+          <h2>Mis propiedades</h2>
+          <a href="publicar.html" class="btn-primary">+ Nueva propiedad</a>
+        </div>
+
+        <div class="my-props-grid" id="myPropsGrid">
+          <!-- Demo cards -->
+          <div class="my-prop-card">
+            <div class="my-prop-img">🏠</div>
+            <div class="my-prop-body">
+              <div class="my-prop-head">
+                <div>
+                  <p class="my-prop-price">RD$ 3,500,000</p>
+                  <h3 class="my-prop-title">Casa amplia con patio</h3>
+                  <p class="my-prop-loc">📍 Centro del pueblo</p>
+                </div>
+                <span class="status-badge status-disponible">Disponible</span>
+              </div>
+              <div class="my-prop-stats">
+                <span>👁 47 vistas</span>
+                <span>💬 3 mensajes</span>
+                <span>❤️ 5 guardados</span>
+              </div>
+              <div class="my-prop-actions">
+                <a href="propiedad.html?id=1" class="btn-outline btn-sm">Ver publicación</a>
+                <button class="btn-outline btn-sm" onclick="editarPropiedad('1')">✏️ Editar</button>
+                <button class="btn-danger btn-sm" onclick="pausarPropiedad('1')">⏸ Pausar</button>
+                <button class="btn-danger btn-sm" onclick="eliminarPropiedad('1')">🗑 Eliminar</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="my-prop-card">
+            <div class="my-prop-img">🏢</div>
+            <div class="my-prop-body">
+              <div class="my-prop-head">
+                <div>
+                  <p class="my-prop-price">RD$ 8,500/mes</p>
+                  <h3 class="my-prop-title">Apartamento en alquiler</h3>
+                  <p class="my-prop-loc">📍 Barrio Los Jardines</p>
+                </div>
+                <span class="status-badge status-pausada">Pausada</span>
+              </div>
+              <div class="my-prop-stats">
+                <span>👁 18 vistas</span>
+                <span>💬 1 mensaje</span>
+                <span>❤️ 2 guardados</span>
+              </div>
+              <div class="my-prop-actions">
+                <a href="propiedad.html?id=2" class="btn-outline btn-sm">Ver publicación</a>
+                <button class="btn-outline btn-sm" onclick="editarPropiedad('2')">✏️ Editar</button>
+                <button class="btn-primary btn-sm" onclick="activarPropiedad('2')">▶ Activar</button>
+                <button class="btn-danger btn-sm" onclick="eliminarPropiedad('2')">🗑 Eliminar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── TAB: Mis datos ─── -->
+      <div class="ptab-content" id="tab-datos">
+        <div class="tab-header">
+          <h2>Mis datos</h2>
+          <button class="btn-primary" id="btnGuardarDatos">Guardar cambios</button>
+        </div>
+
+        <div class="datos-grid">
+          <form id="datosForm" novalidate>
+            <div class="form-section-card">
+              <h3 class="form-section-title" style="font-size:18px">Información personal</h3>
+
+              <div class="form-group">
+                <label>Nombre completo</label>
+                <input type="text" id="editNombre" placeholder="Tu nombre completo" />
+              </div>
+              <div class="form-group">
+                <label>Correo electrónico</label>
+                <input type="email" id="editEmail" placeholder="tucorreo@ejemplo.com" disabled />
+                <span class="form-hint">El correo no se puede cambiar aquí.</span>
+              </div>
+              <div class="form-group">
+                <label>WhatsApp</label>
+                <div class="input-prefix-wrap">
+                  <span class="input-prefix">🇩🇴 +1</span>
+                  <input type="tel" id="editTelefono" placeholder="809-000-0000" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Sobre mí (opcional)</label>
+                <textarea id="editBio" rows="3" placeholder="Cuéntale a los compradores quién eres..."></textarea>
+              </div>
+            </div>
+          </form>
+
+          <div class="perfil-sidebar-card">
+            <h3>Foto de perfil</h3>
+            <div class="avatar-edit-wrap">
+              <div class="perfil-avatar" id="avatarPreview" style="width:80px;height:80px;font-size:28px">U</div>
+              <label class="btn-outline" style="cursor:pointer">
+                Cambiar foto
+                <input type="file" id="avatarInput2" accept="image/*" style="display:none">
+              </label>
+            </div>
+            <p style="font-size:12px;color:var(--text-light);margin-top:8px">JPG o PNG · Máx. 2 MB</p>
+          </div>
+        </div>
+
+        <div class="alert alert-success hidden" id="alertDatos"></div>
+      </div>
+
+      <!-- ─── TAB: Favoritos ─── -->
+      <div class="ptab-content" id="tab-favoritos">
+        <div class="tab-header">
+          <h2>Propiedades guardadas</h2>
+        </div>
+
+        <div class="properties-grid" id="favoritosGrid">
+          <!-- Demo fav -->
+          <article class="prop-card" data-type="casa" data-modal="venta">
+            <div class="prop-img-wrap">
+              <div class="prop-img-placeholder">🏡</div>
+              <div class="prop-badges">
+                <span class="badge badge-venta">Venta</span>
+                <span class="badge badge-tipo">Casa</span>
+              </div>
+              <button class="fav-btn active" title="Quitar de favoritos">♥</button>
+            </div>
+            <div class="prop-body">
+              <p class="prop-price">RD$ 5,200,000</p>
+              <h3 class="prop-title">Villa con piscina y jardín</h3>
+              <p class="prop-location">📍 Residencial Las Palmas</p>
+              <div class="prop-features">
+                <span>🛏 4 hab.</span><span>🚿 3 baños</span><span>📐 220 m²</span>
+              </div>
+              <div class="prop-footer">
+                <div class="prop-owner"><div class="owner-avatar">R</div><span>Roberto Díaz</span></div>
+                <div class="prop-actions">
+                  <a href="propiedad.html?id=3" class="btn-card">Ver</a>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <div class="fav-empty-msg" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-light)">
+            <p style="font-size:32px">♡</p>
+            <p>Guarda propiedades que te interesen haciendo clic en el corazón.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── TAB: Seguridad ─── -->
+      <div class="ptab-content" id="tab-seguridad">
+        <div class="tab-header">
+          <h2>Seguridad de la cuenta</h2>
+        </div>
+
+        <div class="seguridad-grid">
+          <div class="form-section-card">
+            <h3 class="form-section-title" style="font-size:18px">Cambiar contraseña</h3>
+
+            <div class="form-group">
+              <label>Contraseña actual</label>
+              <div class="input-pw-wrap">
+                <input type="password" id="pwActual" placeholder="Tu contraseña actual" />
+                <button type="button" class="toggle-pw">👁</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Nueva contraseña</label>
+              <div class="input-pw-wrap">
+                <input type="password" id="pwNueva" placeholder="Mínimo 6 caracteres" />
+                <button type="button" class="toggle-pw">👁</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Confirmar nueva contraseña</label>
+              <div class="input-pw-wrap">
+                <input type="password" id="pwConfirm" placeholder="Repite la contraseña" />
+                <button type="button" class="toggle-pw">👁</button>
+              </div>
+            </div>
+
+            <div class="alert hidden" id="alertPw"></div>
+
+            <button class="btn-primary" id="btnCambiarPw">Cambiar contraseña</button>
+          </div>
+
+          <div class="form-section-card danger-zone">
+            <h3 style="color:var(--error);font-family:var(--font-display);font-size:18px">Zona de peligro</h3>
+            <p style="font-size:13px;color:var(--text-mid);margin-bottom:16px">Estas acciones no se pueden deshacer.</p>
+            <button class="btn-danger" id="btnEliminarCuenta">🗑 Eliminar mi cuenta permanentemente</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal confirmación eliminar -->
+  <div class="modal-overlay hidden" id="modalConfirm">
+    <div class="modal-box">
+      <h3 id="modalTitle">¿Estás seguro?</h3>
+      <p id="modalMsg">Esta acción no se puede deshacer.</p>
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+        <button class="btn-outline" onclick="$('modalConfirm').classList.add('hidden')">Cancelar</button>
+        <button class="btn-danger" id="modalConfirmBtn">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/firebase.js"></script>
+  <script src="js/perfil.js"></script>
+</body>
+</html>

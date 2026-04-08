@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Panel de anuncios — InmoLocal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/admin.css">
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+
+  <header class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo"><span class="logo-icon">⌂</span><span class="logo-text">InmoLocal <span class="admin-tag">Admin</span></span></a>
+      <nav class="nav-links">
+        <a href="index.html">← Ver sitio</a>
+      </nav>
+      <div class="nav-actions">
+        <a href="#" id="logoutBtn" class="btn-outline">Cerrar sesión</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-page">
+    <div class="container">
+
+      <!-- Stats rápidas -->
+      <div class="admin-stats-row">
+        <div class="admin-stat-card">
+          <span class="asc-icon">🏠</span>
+          <div>
+            <p class="asc-num" id="totalProps">12</p>
+            <p class="asc-label">Propiedades activas</p>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <span class="asc-icon">👥</span>
+          <div>
+            <p class="asc-num" id="totalUsers">34</p>
+            <p class="asc-label">Usuarios registrados</p>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <span class="asc-icon">📢</span>
+          <div>
+            <p class="asc-num" id="totalAds">3</p>
+            <p class="asc-label">Anuncios activos</p>
+          </div>
+        </div>
+        <div class="admin-stat-card">
+          <span class="asc-icon">💬</span>
+          <div>
+            <p class="asc-num" id="totalChats">8</p>
+            <p class="asc-label">Conversaciones hoy</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-layout">
+
+        <!-- ══ GESTIÓN DE ANUNCIOS ══ -->
+        <section class="admin-section">
+          <div class="admin-section-header">
+            <h2>📢 Gestión de anuncios</h2>
+            <button class="btn-primary" id="btnNuevoAnuncio">+ Nuevo anuncio</button>
+          </div>
+
+          <!-- Formulario nuevo anuncio -->
+          <div class="anuncio-form-card hidden" id="anuncioForm">
+            <h3>Crear anuncio</h3>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Nombre del negocio *</label>
+                <input type="text" id="adNombre" placeholder="Ej: Ferretería El Constructor" />
+              </div>
+              <div class="form-group">
+                <label>Posición del anuncio *</label>
+                <select id="adPosicion">
+                  <option value="banner-top">Banner superior (más visible)</option>
+                  <option value="en-grid">Dentro del grid de propiedades</option>
+                  <option value="sidebar">Sidebar (próximamente)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>URL de destino (clic del anuncio)</label>
+                <input type="url" id="adLink" placeholder="https://miweb.com o WhatsApp link" />
+              </div>
+              <div class="form-group">
+                <label>Emoji o icono del negocio</label>
+                <input type="text" id="adEmoji" placeholder="🏗️ 🍕 💈 🛒 ..." maxlength="4" />
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>Fecha de inicio</label>
+                <input type="date" id="adInicio" />
+              </div>
+              <div class="form-group">
+                <label>Fecha de fin</label>
+                <input type="date" id="adFin" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Texto del anuncio</label>
+              <textarea id="adTexto" rows="2" placeholder="Descripción breve del negocio..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Imagen del anuncio (opcional)</label>
+              <div class="upload-zone" id="adImageZone" style="padding:20px">
+                <input type="file" id="adImageInput" accept="image/*" />
+                <div class="uz-icon" style="font-size:24px">🖼️</div>
+                <p class="uz-title" style="font-size:13px">Subir imagen del anuncio</p>
+                <p class="uz-sub">JPG, PNG · Recomendado: 1200×200px para banner</p>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Precio cobrado (RD$)</label>
+              <input type="number" id="adPrecio" placeholder="500" min="0" />
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+              <button class="btn-outline" id="btnCancelarAnuncio">Cancelar</button>
+              <button class="btn-primary" id="btnGuardarAnuncio">Guardar anuncio</button>
+            </div>
+            <div class="alert hidden" id="alertAnuncio"></div>
+          </div>
+
+          <!-- Lista de anuncios -->
+          <div class="anuncios-admin-list" id="anunciosAdminList">
+            <div class="ad-admin-card">
+              <div class="ad-admin-icon">🍕</div>
+              <div class="ad-admin-info">
+                <p class="ad-admin-name">Pizzería Don Pepito</p>
+                <p class="ad-admin-detail">Banner superior · Expira: 31/12/2025 · RD$1,500</p>
+                <div class="ad-admin-badges">
+                  <span class="status-badge status-disponible">Activo</span>
+                  <span style="font-size:11px;color:var(--text-light)">👁 234 clicks</span>
+                </div>
+              </div>
+              <div class="ad-admin-actions">
+                <button class="btn-outline btn-sm">✏️ Editar</button>
+                <button class="btn-danger btn-sm">🗑 Eliminar</button>
+              </div>
+            </div>
+
+            <div class="ad-admin-card">
+              <div class="ad-admin-icon">🏗️</div>
+              <div class="ad-admin-info">
+                <p class="ad-admin-name">Construcciones Pérez</p>
+                <p class="ad-admin-detail">Grid de propiedades · Expira: 15/01/2026 · RD$800</p>
+                <div class="ad-admin-badges">
+                  <span class="status-badge status-disponible">Activo</span>
+                  <span style="font-size:11px;color:var(--text-light)">👁 98 clicks</span>
+                </div>
+              </div>
+              <div class="ad-admin-actions">
+                <button class="btn-outline btn-sm">✏️ Editar</button>
+                <button class="btn-danger btn-sm">🗑 Eliminar</button>
+              </div>
+            </div>
+
+            <div class="ad-admin-card">
+              <div class="ad-admin-icon">💈</div>
+              <div class="ad-admin-info">
+                <p class="ad-admin-name">Barbería Style</p>
+                <p class="ad-admin-detail">Sección anuncios · Expiró: 01/12/2025 · RD$500</p>
+                <div class="ad-admin-badges">
+                  <span class="status-badge status-pausada">Expirado</span>
+                  <span style="font-size:11px;color:var(--text-light)">👁 312 clicks</span>
+                </div>
+              </div>
+              <div class="ad-admin-actions">
+                <button class="btn-primary btn-sm">🔄 Renovar</button>
+                <button class="btn-danger btn-sm">🗑 Eliminar</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══ GESTIÓN DE PROPIEDADES ══ -->
+        <section class="admin-section">
+          <div class="admin-section-header">
+            <h2>🏠 Gestión de propiedades</h2>
+            <div style="display:flex;gap:8px">
+              <select id="adminPropFilter" class="admin-select">
+                <option value="">Todas</option>
+                <option value="disponible">Disponibles</option>
+                <option value="pausada">Pausadas</option>
+              </select>
+            </div>
+          </div>
+
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Propiedad</th>
+                <th>Propietario</th>
+                <th>Precio</th>
+                <th>Vistas</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="adminPropsBody">
+              <tr>
+                <td><strong>Casa amplia con patio</strong><br><small>Centro · Casa · Venta</small></td>
+                <td>Juan Pérez</td>
+                <td>RD$ 3,500,000</td>
+                <td>47</td>
+                <td><span class="status-badge status-disponible">Disponible</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <a href="propiedad.html?id=1" class="btn-outline btn-sm">Ver</a>
+                    <button class="btn-danger btn-sm" onclick="adminEliminarProp('1')">Eliminar</button>
+                    <button class="btn-outline btn-sm" onclick="adminDestacar('1')">⭐ Destacar</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Apartamento moderno</strong><br><small>Los Jardines · Apto · Alquiler</small></td>
+                <td>María López</td>
+                <td>RD$ 8,500/mes</td>
+                <td>18</td>
+                <td><span class="status-badge status-pausada">Pausada</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <a href="propiedad.html?id=2" class="btn-outline btn-sm">Ver</a>
+                    <button class="btn-danger btn-sm" onclick="adminEliminarProp('2')">Eliminar</button>
+                    <button class="btn-outline btn-sm" onclick="adminDestacar('2')">⭐ Destacar</button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>Villa con piscina y jardín</strong><br><small>Las Palmas · Casa · Venta</small></td>
+                <td>Roberto Díaz</td>
+                <td>RD$ 5,200,000</td>
+                <td>94</td>
+                <td><span class="status-badge status-disponible">Disponible</span></td>
+                <td>
+                  <div style="display:flex;gap:6px">
+                    <a href="propiedad.html?id=3" class="btn-outline btn-sm">Ver</a>
+                    <button class="btn-danger btn-sm" onclick="adminEliminarProp('3')">Eliminar</button>
+                    <button class="btn-outline btn-sm" onclick="adminDestacar('3')">⭐ Destacar</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- ══ INGRESOS ══ -->
+        <section class="admin-section">
+          <div class="admin-section-header">
+            <h2>💰 Ingresos por anuncios</h2>
+          </div>
+          <div class="ingresos-grid">
+            <div class="ingreso-card">
+              <p class="ingreso-label">Este mes</p>
+              <p class="ingreso-num">RD$ 2,800</p>
+            </div>
+            <div class="ingreso-card">
+              <p class="ingreso-label">Mes anterior</p>
+              <p class="ingreso-num">RD$ 2,100</p>
+            </div>
+            <div class="ingreso-card">
+              <p class="ingreso-label">Total acumulado</p>
+              <p class="ingreso-num">RD$ 9,400</p>
+            </div>
+            <div class="ingreso-card">
+              <p class="ingreso-label">Anuncios activos</p>
+              <p class="ingreso-num">3</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <script src="js/firebase.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

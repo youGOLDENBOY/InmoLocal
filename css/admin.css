@@ -1,0 +1,174 @@
+/* ═══════════════════════════════════════════════════════════
+   InmoLocal — admin.css
+═══════════════════════════════════════════════════════════ */
+
+.admin-tag {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  background: var(--gold);
+  color: var(--olive);
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.admin-page {
+  padding-top: calc(var(--nav-h) + 32px);
+  padding-bottom: 80px;
+  min-height: 100vh;
+}
+
+/* ─── Stats row ─── */
+.admin-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.admin-stat-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: box-shadow .2s;
+}
+.admin-stat-card:hover { box-shadow: var(--shadow-md); }
+.asc-icon { font-size: 32px; }
+.asc-num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--olive);
+  line-height: 1;
+}
+.asc-label { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+
+/* ─── Layout ─── */
+.admin-layout { display: flex; flex-direction: column; gap: 32px; }
+
+/* ─── Sections ─── */
+.admin-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+}
+.admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.admin-section-header h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--olive);
+}
+
+/* ─── Anuncio form ─── */
+.anuncio-form-card {
+  background: var(--cream-dark);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.anuncio-form-card h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--olive);
+  margin-bottom: 20px;
+}
+
+/* ─── Anuncios list ─── */
+.anuncios-admin-list { display: flex; flex-direction: column; gap: 12px; }
+.ad-admin-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--cream-dark);
+  transition: box-shadow .2s;
+}
+.ad-admin-card:hover { box-shadow: var(--shadow-sm); }
+.ad-admin-icon { font-size: 32px; flex-shrink: 0; }
+.ad-admin-info { flex: 1; }
+.ad-admin-name { font-size: 15px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+.ad-admin-detail { font-size: 12px; color: var(--text-light); margin-bottom: 6px; }
+.ad-admin-badges { display: flex; align-items: center; gap: 8px; }
+.ad-admin-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* ─── Table ─── */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.admin-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--cream-dark);
+  color: var(--text-mid);
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 2px solid var(--border);
+}
+.admin-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--cream-dark);
+  color: var(--text);
+  vertical-align: middle;
+}
+.admin-table td small { color: var(--text-light); }
+.admin-table tr:hover td { background: var(--cream-dark); }
+
+.admin-select {
+  padding: 8px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 13px;
+  background: var(--white);
+  outline: none;
+  cursor: pointer;
+}
+
+/* ─── Ingresos ─── */
+.ingresos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+.ingreso-card {
+  background: var(--cream-dark);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  text-align: center;
+}
+.ingreso-label { font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.ingreso-num {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--olive);
+}
+
+@media (max-width: 700px) {
+  .admin-table { display: block; overflow-x: auto; }
+  .ad-admin-card { flex-wrap: wrap; }
+}
