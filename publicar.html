@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Publicar propiedad — InmoLocal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/publicar.css">
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <header class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">⌂</span>
+        <span class="logo-text">InmoLocal</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">← Volver al inicio</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="publicar-page">
+    <div class="container">
+
+      <!-- Header -->
+      <div class="publicar-header">
+        <div>
+          <p class="section-eyebrow">Nueva publicación</p>
+          <h1 class="publicar-title">Publicar propiedad</h1>
+          <p class="publicar-sub">Completa la información. Tu propiedad será visible de inmediato.</p>
+        </div>
+        <!-- Steps indicator -->
+        <div class="steps-indicator">
+          <div class="step active" data-step="1">
+            <div class="step-num">1</div>
+            <span>Información</span>
+          </div>
+          <div class="step-line"></div>
+          <div class="step" data-step="2">
+            <div class="step-num">2</div>
+            <span>Fotos y videos</span>
+          </div>
+          <div class="step-line"></div>
+          <div class="step" data-step="3">
+            <div class="step-num">3</div>
+            <span>Publicar</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="publicar-layout">
+
+        <!-- ═══ FORMULARIO ═══ -->
+        <form id="publicarForm" novalidate>
+
+          <!-- ─── PASO 1: Información ─── -->
+          <div class="form-step active" id="step1">
+            <div class="form-section-card">
+              <h2 class="form-section-title">Tipo de propiedad</h2>
+
+              <!-- Tipo + Modalidad como toggle buttons -->
+              <div class="toggle-group">
+                <p class="toggle-label">¿Qué es?</p>
+                <div class="toggle-btns" id="tipoGroup">
+                  <button type="button" class="toggle-opt active" data-val="casa">
+                    🏠 Casa
+                  </button>
+                  <button type="button" class="toggle-opt" data-val="apartamento">
+                    🏢 Apartamento
+                  </button>
+                </div>
+                <input type="hidden" id="tipo" value="casa" />
+              </div>
+
+              <div class="toggle-group">
+                <p class="toggle-label">¿Qué ofreces?</p>
+                <div class="toggle-btns" id="modalidadGroup">
+                  <button type="button" class="toggle-opt active" data-val="venta">
+                    🏷️ En venta
+                  </button>
+                  <button type="button" class="toggle-opt" data-val="alquiler">
+                    🔑 En alquiler
+                  </button>
+                </div>
+                <input type="hidden" id="modalidad" value="venta" />
+              </div>
+            </div>
+
+            <div class="form-section-card">
+              <h2 class="form-section-title">Detalles</h2>
+
+              <div class="form-group" id="grpTitulo">
+                <label for="titulo">Título de la publicación *</label>
+                <input type="text" id="titulo" placeholder="Ej: Casa amplia con patio en el centro" maxlength="80" />
+                <span class="form-hint"><span id="tituloCount">0</span>/80 caracteres</span>
+                <span class="form-error" id="errTitulo">El título es requerido</span>
+              </div>
+
+              <div class="form-group" id="grpDesc">
+                <label for="descripcion">Descripción *</label>
+                <textarea id="descripcion" rows="5" placeholder="Describe tu propiedad: características, estado, qué incluye, beneficios del sector..." maxlength="1000"></textarea>
+                <span class="form-hint"><span id="descCount">0</span>/1000 caracteres</span>
+                <span class="form-error" id="errDesc">La descripción es requerida</span>
+              </div>
+
+              <div class="form-row-2">
+                <div class="form-group" id="grpPrecio">
+                  <label for="precio">Precio *</label>
+                  <div class="input-prefix-wrap">
+                    <span class="input-prefix">RD$</span>
+                    <input type="number" id="precio" placeholder="0" min="0" />
+                  </div>
+                  <span class="form-error" id="errPrecio">Ingresa el precio</span>
+                </div>
+                <div class="form-group">
+                  <label for="moneda">Moneda</label>
+                  <select id="moneda">
+                    <option value="DOP">Pesos dominicanos (RD$)</option>
+                    <option value="USD">Dólares (USD$)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row-3">
+                <div class="form-group" id="grpHab">
+                  <label for="habitaciones">Habitaciones *</label>
+                  <input type="number" id="habitaciones" placeholder="0" min="0" max="20" />
+                  <span class="form-error" id="errHab">Requerido</span>
+                </div>
+                <div class="form-group" id="grpBanos">
+                  <label for="banos">Baños *</label>
+                  <input type="number" id="banos" placeholder="0" min="0" max="20" />
+                  <span class="form-error" id="errBanos">Requerido</span>
+                </div>
+                <div class="form-group">
+                  <label for="metros">Metros cuadrados</label>
+                  <input type="number" id="metros" placeholder="m²" min="0" />
+                </div>
+              </div>
+
+              <!-- Amenidades -->
+              <div class="form-group">
+                <label>Características adicionales</label>
+                <div class="amenidades-grid">
+                  <label class="amenidad-check"><input type="checkbox" value="garage"> 🚗 Garaje</label>
+                  <label class="amenidad-check"><input type="checkbox" value="piscina"> 🏊 Piscina</label>
+                  <label class="amenidad-check"><input type="checkbox" value="patio"> 🌿 Patio/Jardín</label>
+                  <label class="amenidad-check"><input type="checkbox" value="balcon"> 🏙️ Balcón</label>
+                  <label class="amenidad-check"><input type="checkbox" value="amueblado"> 🛋️ Amueblado</label>
+                  <label class="amenidad-check"><input type="checkbox" value="ac"> ❄️ Aire acondicionado</label>
+                  <label class="amenidad-check"><input type="checkbox" value="seguridad"> 🔒 Seguridad</label>
+                  <label class="amenidad-check"><input type="checkbox" value="planta"> ⚡ Planta eléctrica</label>
+                  <label class="amenidad-check"><input type="checkbox" value="cisterna"> 💧 Cisterna/Tanque</label>
+                  <label class="amenidad-check"><input type="checkbox" value="internet"> 📡 Internet incluido</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section-card">
+              <h2 class="form-section-title">Ubicación</h2>
+
+              <div class="form-row-2">
+                <div class="form-group" id="grpDireccion">
+                  <label for="direccion">Dirección / Sector *</label>
+                  <input type="text" id="direccion" placeholder="Ej: Calle Duarte #45, Centro" />
+                  <span class="form-error" id="errDireccion">La dirección es requerida</span>
+                </div>
+                <div class="form-group">
+                  <label for="referencia">Referencia (opcional)</label>
+                  <input type="text" id="referencia" placeholder="Ej: Detrás del parque central" />
+                </div>
+              </div>
+            </div>
+
+            <div class="step-nav">
+              <div></div>
+              <button type="button" class="btn-primary" id="btnStep1Next">
+                Siguiente: Fotos y videos →
+              </button>
+            </div>
+          </div>
+
+          <!-- ─── PASO 2: Fotos y videos ─── -->
+          <div class="form-step" id="step2">
+            <div class="form-section-card">
+              <h2 class="form-section-title">
+                Fotos
+                <span class="form-section-badge">Máximo 10</span>
+              </h2>
+              <p class="form-section-desc">Las fotos son lo primero que ven los interesados. Sube fotos claras y bien iluminadas.</p>
+
+              <div class="upload-zone" id="fotoZone">
+                <input type="file" id="fotoInput" accept="image/*" multiple />
+                <div class="uz-icon">📸</div>
+                <p class="uz-title">Haz clic o arrastra tus fotos aquí</p>
+                <p class="uz-sub">JPG, PNG o WEBP · Máx. 10 MB por foto · Hasta 10 fotos</p>
+              </div>
+
+              <div class="upload-counter">
+                <span id="fotoCountLabel">0/10 fotos</span>
+                <button type="button" class="link-subtle" id="btnAddMoreFotos" style="display:none">+ Agregar más</button>
+              </div>
+
+              <div class="upload-preview" id="fotoPreview"></div>
+            </div>
+
+            <div class="form-section-card">
+              <h2 class="form-section-title">
+                Videos cortos
+                <span class="form-section-badge">Máximo 3 · 10 seg. cada uno</span>
+              </h2>
+              <p class="form-section-desc">Un recorrido rápido genera mucho más confianza. Máximo 3 videos de 10 segundos.</p>
+
+              <div class="upload-zone" id="videoZone">
+                <input type="file" id="videoInput" accept="video/*" multiple />
+                <div class="uz-icon">🎬</div>
+                <p class="uz-title">Haz clic o arrastra tus videos aquí</p>
+                <p class="uz-sub">MP4, MOV o WEBM · Máx. 50 MB por video · Hasta 3 videos de 10 seg.</p>
+              </div>
+
+              <div class="upload-counter">
+                <span id="videoCountLabel">0/3 videos</span>
+              </div>
+
+              <div class="upload-preview" id="videoPreview"></div>
+
+              <!-- Alertas de video -->
+              <div class="alert alert-error hidden" id="alertVideo"></div>
+            </div>
+
+            <div class="step-nav">
+              <button type="button" class="btn-outline" id="btnStep2Back">← Atrás</button>
+              <button type="button" class="btn-primary" id="btnStep2Next">Siguiente: Revisar →</button>
+            </div>
+          </div>
+
+          <!-- ─── PASO 3: Revisar y publicar ─── -->
+          <div class="form-step" id="step3">
+            <div class="form-section-card">
+              <h2 class="form-section-title">Vista previa</h2>
+              <p class="form-section-desc">Así se verá tu publicación. Revisa que todo esté correcto.</p>
+
+              <!-- Preview card -->
+              <div class="preview-card" id="previewCard">
+                <div class="preview-img-wrap" id="previewImgWrap">
+                  <div class="preview-img-placeholder" id="previewImgPlaceholder">📸 Sin fotos aún</div>
+                  <img id="previewImg" src="" alt="" style="display:none">
+                  <div class="prop-badges" id="previewBadges"></div>
+                </div>
+                <div class="preview-body">
+                  <p class="prop-price" id="previewPrecio">RD$ —</p>
+                  <h3 class="prop-title" id="previewTitulo">Tu título aquí</h3>
+                  <p class="prop-location">📍 <span id="previewDireccion">—</span></p>
+                  <div class="prop-features" id="previewFeatures"></div>
+                  <p class="preview-desc" id="previewDesc"></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section-card">
+              <h2 class="form-section-title">Contacto público</h2>
+              <p class="form-section-desc">Los interesados verán esta información para contactarte.</p>
+
+              <div class="contact-preview" id="contactPreview">
+                <div class="owner-avatar" id="previewAvatar">?</div>
+                <div>
+                  <p class="contact-name" id="previewNombre">Tu nombre</p>
+                  <p class="contact-tel" id="previewTelefono">Tu WhatsApp</p>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-top:16px">
+                <label class="check-label">
+                  <input type="checkbox" id="mostrarTelefono" checked>
+                  Mostrar mi número de WhatsApp públicamente
+                </label>
+              </div>
+            </div>
+
+            <!-- Upload progress -->
+            <div class="upload-progress hidden" id="uploadProgress">
+              <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+              </div>
+              <p class="progress-label" id="progressLabel">Subiendo fotos... 0%</p>
+            </div>
+
+            <div class="alert alert-error hidden" id="alertPublicar"></div>
+            <div class="alert alert-success hidden" id="alertPublicarOk"></div>
+
+            <div class="step-nav">
+              <button type="button" class="btn-outline" id="btnStep3Back">← Atrás</button>
+              <button type="submit" class="btn-primary btn-lg" id="btnPublicar">
+                <span id="btnPublicarText">🏠 Publicar ahora</span>
+                <span id="btnPublicarSpinner" class="spinner hidden"></span>
+              </button>
+            </div>
+          </div>
+
+        </form>
+
+        <!-- ═══ SIDEBAR TIPS ═══ -->
+        <aside class="publicar-sidebar">
+          <div class="tips-card">
+            <h3>💡 Consejos para vender más rápido</h3>
+            <ul class="tips-list">
+              <li>
+                <span class="tip-icon">📸</span>
+                <div>
+                  <strong>Buenas fotos importan</strong>
+                  <p>Las propiedades con 5+ fotos reciben 3x más contactos.</p>
+                </div>
+              </li>
+              <li>
+                <span class="tip-icon">📝</span>
+                <div>
+                  <strong>Descripción detallada</strong>
+                  <p>Menciona el sector, transporte, servicios cercanos.</p>
+                </div>
+              </li>
+              <li>
+                <span class="tip-icon">💰</span>
+                <div>
+                  <strong>Precio justo</strong>
+                  <p>Investiga precios similares en tu zona.</p>
+                </div>
+              </li>
+              <li>
+                <span class="tip-icon">📱</span>
+                <div>
+                  <strong>WhatsApp activo</strong>
+                  <p>Responde rápido — los interesados contactan varios propietarios.</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div class="tips-card tips-card-promo">
+            <h3>⭐ ¿Quieres más visibilidad?</h3>
+            <p>Destaca tu propiedad y aparece primero en los resultados.</p>
+            <a href="destacar.html" class="btn-primary" style="width:100%;justify-content:center;margin-top:12px">
+              Ver planes →
+            </a>
+          </div>
+        </aside>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="js/firebase.js"></script>
+  <script src="js/publicar.js"></script>
+</body>
+</html>

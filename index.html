@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>InmoLocal — Propiedades en tu pueblo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════ NAVBAR ═══════════════════════════════ -->
+  <header class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">⌂</span>
+        <span class="logo-text">InmoLocal</span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#propiedades">Propiedades</a>
+        <a href="#anuncios">Anuncios</a>
+        <a href="publicar.html">Publicar</a>
+        <a href="favoritos.html">Favoritos</a>
+      </nav>
+
+      <div class="nav-actions">
+        <!-- Estado: no logueado -->
+        <div class="auth-guest" id="authGuest">
+          <a href="login.html" class="btn-outline">Entrar</a>
+          <a href="registro.html" class="btn-primary">Registrarme</a>
+        </div>
+        <!-- Estado: logueado (oculto por defecto, JS lo activa) -->
+        <div class="auth-user hidden" id="authUser">
+          <a href="publicar.html" class="btn-primary">+ Publicar</a>
+          <div class="avatar-wrap" id="avatarWrap">
+            <img src="img/avatar-placeholder.png" alt="Mi cuenta" class="avatar" id="userAvatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="avatar-fallback" id="avatarFallback">S</div>
+            <div class="dropdown-menu" id="dropdownMenu">
+              <a href="perfil.html">Mi perfil</a>
+              <a href="mis-propiedades.html">Mis propiedades</a>
+              <a href="chat.html">Mensajes</a>
+              <hr>
+              <a href="#" id="logoutBtn" class="logout">Cerrar sesión</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="hamburger" id="hamburger" aria-label="Menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <!-- Mobile menu -->
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#propiedades">Propiedades</a>
+      <a href="#anuncios">Anuncios</a>
+      <a href="publicar.html">Publicar</a>
+      <a href="favoritos.html">Favoritos</a>
+      <hr>
+      <a href="login.html">Entrar</a>
+      <a href="registro.html">Registrarme</a>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════ HERO ═══════════════════════════════ -->
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="hero-grain"></div>
+      <div class="hero-gradient"></div>
+    </div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">Tu pueblo, tus propiedades</p>
+      <h1 class="hero-title">Encuentra tu<br><em>hogar ideal</em></h1>
+      <p class="hero-sub">Casas y apartamentos en venta y alquiler. Conectamos vecinos.</p>
+
+      <!-- Search bar -->
+      <div class="search-bar">
+        <div class="search-field">
+          <label>Tipo</label>
+          <select id="filterType">
+            <option value="">Todo</option>
+            <option value="casa">Casa</option>
+            <option value="apartamento">Apartamento</option>
+          </select>
+        </div>
+        <div class="search-divider"></div>
+        <div class="search-field">
+          <label>Modalidad</label>
+          <select id="filterModal">
+            <option value="">Todo</option>
+            <option value="venta">Venta</option>
+            <option value="alquiler">Alquiler</option>
+          </select>
+        </div>
+        <div class="search-divider"></div>
+        <div class="search-field">
+          <label>Precio máximo</label>
+          <select id="filterPrice">
+            <option value="">Sin límite</option>
+            <option value="5000">RD$5,000</option>
+            <option value="10000">RD$10,000</option>
+            <option value="20000">RD$20,000</option>
+            <option value="50000">RD$50,000</option>
+            <option value="100000">RD$100,000</option>
+          </select>
+        </div>
+        <button class="search-btn" id="searchBtn">Buscar</button>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat"><span class="stat-num" id="statTotal">0</span><span>Propiedades</span></div>
+        <div class="stat-sep">·</div>
+        <div class="stat"><span class="stat-num" id="statVenta">0</span><span>En venta</span></div>
+        <div class="stat-sep">·</div>
+        <div class="stat"><span class="stat-num" id="statAlquiler">0</span><span>En alquiler</span></div>
+      </div>
+    </div>
+
+    <div class="hero-scroll-hint">
+      <span>Explorar</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ ANUNCIO BANNER TOP ═══════════════════════ -->
+  <div class="ad-banner-top" id="adBannerTop">
+    <div class="ad-inner">
+      <span class="ad-label">Anuncio</span>
+      <div class="ad-content" id="adContent">
+        <!-- Se llena dinámicamente -->
+        <a href="#" class="ad-placeholder">
+          <div class="ad-placeholder-img">📢</div>
+          <div class="ad-placeholder-text">
+            <strong>Tu negocio aquí</strong>
+            <span>Llega a cientos de personas buscando propiedades — <u>Contactar</u></span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ PROPIEDADES ═══════════════════════════════ -->
+  <section class="section" id="propiedades">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <p class="section-eyebrow">Disponibles ahora</p>
+          <h2 class="section-title">Propiedades</h2>
+        </div>
+        <div class="view-controls">
+          <button class="view-btn active" id="viewGrid" title="Ver en cuadrícula">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 8a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zm6-6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          </button>
+          <button class="view-btn" id="viewList" title="Ver en lista">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="filter-chips">
+        <button class="chip active" data-filter="todo">Todo</button>
+        <button class="chip" data-filter="casa-venta">Casas en venta</button>
+        <button class="chip" data-filter="casa-alquiler">Casas en alquiler</button>
+        <button class="chip" data-filter="apartamento-venta">Aptos. en venta</button>
+        <button class="chip" data-filter="apartamento-alquiler">Aptos. en alquiler</button>
+      </div>
+
+      <!-- Properties grid -->
+      <div class="properties-grid" id="propertiesGrid">
+        <!-- Demo cards (se reemplazarán con Firebase) -->
+        <article class="prop-card" data-type="casa" data-modal="venta">
+          <div class="prop-img-wrap">
+            <div class="prop-img-placeholder">🏠</div>
+            <div class="prop-badges">
+              <span class="badge badge-venta">Venta</span>
+              <span class="badge badge-tipo">Casa</span>
+            </div>
+            <button class="fav-btn" title="Guardar en favoritos">♡</button>
+          </div>
+          <div class="prop-body">
+            <p class="prop-price">RD$ 3,500,000</p>
+            <h3 class="prop-title">Casa amplia con patio</h3>
+            <p class="prop-location">📍 Centro del pueblo</p>
+            <div class="prop-features">
+              <span>🛏 3 hab.</span>
+              <span>🚿 2 baños</span>
+              <span>📐 120 m²</span>
+            </div>
+            <div class="prop-footer">
+              <div class="prop-owner">
+                <div class="owner-avatar">J</div>
+                <span>Juan Pérez</span>
+              </div>
+              <div class="prop-actions">
+                <a href="propiedad.html?id=1" class="btn-card">Ver</a>
+                <a href="https://wa.me/18095550000?text=Hola,%20vi%20tu%20propiedad%20en%20InmoLocal%20y%20me%20interesa." class="btn-wpp" target="_blank" title="WhatsApp">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prop-card" data-type="apartamento" data-modal="alquiler">
+          <div class="prop-img-wrap">
+            <div class="prop-img-placeholder">🏢</div>
+            <div class="prop-badges">
+              <span class="badge badge-alquiler">Alquiler</span>
+              <span class="badge badge-tipo">Apartamento</span>
+            </div>
+            <button class="fav-btn" title="Guardar en favoritos">♡</button>
+          </div>
+          <div class="prop-body">
+            <p class="prop-price">RD$ 8,500 <small>/mes</small></p>
+            <h3 class="prop-title">Apartamento moderno</h3>
+            <p class="prop-location">📍 pueblo nuevo</p>
+            <div class="prop-features">
+              <span>🛏 2 hab.</span>
+              <span>🚿 1 baño</span>
+              <span>📐 75 m²</span>
+            </div>
+            <div class="prop-footer">
+              <div class="prop-owner">
+                <div class="owner-avatar">M</div>
+                <span>María López</span>
+              </div>
+              <div class="prop-actions">
+                <a href="propiedad.html?id=2" class="btn-card">Ver</a>
+                <a href="https://wa.me/18095550001?text=Hola,%20vi%20tu%20apartamento%20en%20InmoLocal." class="btn-wpp" target="_blank" title="WhatsApp">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prop-card featured" data-type="casa" data-modal="venta">
+          <div class="prop-img-wrap">
+            <div class="prop-img-placeholder">🏡</div>
+            <div class="prop-badges">
+              <span class="badge badge-venta">Venta</span>
+              <span class="badge badge-tipo">Casa</span>
+              <span class="badge badge-featured">⭐ Destacada</span>
+            </div>
+            <button class="fav-btn" title="Guardar en favoritos">♡</button>
+          </div>
+          <div class="prop-body">
+            <p class="prop-price">RD$ 5,200,000</p>
+            <h3 class="prop-title">Villa con piscina y jardín</h3>
+            <p class="prop-location">📍 Residencial Las Palmas</p>
+            <div class="prop-features">
+              <span>🛏 4 hab.</span>
+              <span>🚿 3 baños</span>
+              <span>📐 220 m²</span>
+            </div>
+            <div class="prop-footer">
+              <div class="prop-owner">
+                <div class="owner-avatar">R</div>
+                <span>Roberto Díaz</span>
+              </div>
+              <div class="prop-actions">
+                <a href="propiedad.html?id=3" class="btn-card">Ver</a>
+                <a href="https://wa.me/18095550002?text=Hola,%20vi%20tu%20villa%20en%20InmoLocal." class="btn-wpp" target="_blank" title="WhatsApp">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="prop-card" data-type="apartamento" data-modal="venta">
+          <div class="prop-img-wrap">
+            <div class="prop-img-placeholder">🏢</div>
+            <div class="prop-badges">
+              <span class="badge badge-venta">Venta</span>
+              <span class="badge badge-tipo">Apartamento</span>
+            </div>
+            <button class="fav-btn" title="Guardar en favoritos">♡</button>
+          </div>
+          <div class="prop-body">
+            <p class="prop-price">RD$ 1,800,000</p>
+            <h3 class="prop-title">Apto. céntrico 2do piso</h3>
+            <p class="prop-location">📍 Calle Principal</p>
+            <div class="prop-features">
+              <span>🛏 2 hab.</span>
+              <span>🚿 1 baño</span>
+              <span>📐 60 m²</span>
+            </div>
+            <div class="prop-footer">
+              <div class="prop-owner">
+                <div class="owner-avatar">A</div>
+                <span>Ana Martínez</span>
+              </div>
+              <div class="prop-actions">
+                <a href="propiedad.html?id=4" class="btn-card">Ver</a>
+                <a href="https://wa.me/18095550003?text=Hola,%20vi%20tu%20apartamento%20en%20InmoLocal." class="btn-wpp" target="_blank" title="WhatsApp">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Ad card injected every 6 props -->
+        <div class="prop-card ad-card">
+          <div class="ad-card-inner">
+            <span class="ad-label">Anuncio</span>
+            <div class="ad-card-emoji">🛒</div>
+            <p class="ad-card-title">Ferretería El Constructor</p>
+            <p class="ad-card-sub">Todo para tu nuevo hogar</p>
+            <a href="#" class="btn-primary">Ver ofertas</a>
+          </div>
+        </div>
+
+        <article class="prop-card" data-type="casa" data-modal="alquiler">
+          <div class="prop-img-wrap">
+            <div class="prop-img-placeholder">🏠</div>
+            <div class="prop-badges">
+              <span class="badge badge-alquiler">Alquiler</span>
+              <span class="badge badge-tipo">Casa</span>
+            </div>
+            <button class="fav-btn" title="Guardar en favoritos">♡</button>
+          </div>
+          <div class="prop-body">
+            <p class="prop-price">RD$ 15,000 <small>/mes</small></p>
+            <h3 class="prop-title">Casa familiar con garaje</h3>
+            <p class="prop-location">📍 sector escolar</p>
+            <div class="prop-features">
+              <span>🛏 3 hab.</span>
+              <span>🚿 2 baños</span>
+              <span>📐 140 m²</span>
+            </div>
+            <div class="prop-footer">
+              <div class="prop-owner">
+                <div class="owner-avatar">C</div>
+                <span>Carlos Reyes</span>
+              </div>
+              <div class="prop-actions">
+                <a href="propiedad.html?id=5" class="btn-card">Ver</a>
+                <a href="https://wa.me/18095550004?text=Hola,%20vi%20tu%20casa%20en%20InmoLocal." class="btn-wpp" target="_blank" title="WhatsApp">
+                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="load-more-wrap">
+        <button class="btn-load-more" id="loadMoreBtn">Cargar más propiedades</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SECCIÓN ANUNCIOS ══════════════════════════ -->
+  <section class="section section-dark" id="anuncios">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <p class="section-eyebrow">Comunidad local</p>
+          <h2 class="section-title">Anuncios</h2>
+        </div>
+        <a href="anunciar.html" class="btn-outline-light">Publicar anuncio</a>
+      </div>
+
+      <div class="ads-grid">
+        <div class="ad-full-card">
+          <div class="ad-full-img">🍕</div>
+          <div class="ad-full-body">
+            <span class="ad-label">Anuncio</span>
+            <h3>Pizzería Don Pepito</h3>
+            <p>Delivery a domicilio todos los días. Descuento 15% al mostrar este anuncio.</p>
+            <a href="#" class="btn-primary">Ver más</a>
+          </div>
+        </div>
+        <div class="ad-full-card">
+          <div class="ad-full-img">🏗️</div>
+          <div class="ad-full-body">
+            <span class="ad-label">Anuncio</span>
+            <h3>Construcciones Pérez</h3>
+            <p>Remodelaciones, plomería y electricidad. Más de 10 años de experiencia.</p>
+            <a href="#" class="btn-primary">Contactar</a>
+          </div>
+        </div>
+        <div class="ad-full-card">
+          <div class="ad-full-img">💈</div>
+          <div class="ad-full-body">
+            <span class="ad-label">Anuncio</span>
+            <h3>Barbería Style</h3>
+            <p>Cortes modernos y clásicos. Abierto lunes a sábado de 8am a 7pm.</p>
+            <a href="#" class="btn-primary">Ver ubicación</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="advertise-cta">
+        <div class="advertise-cta-inner">
+          <h3>¿Tienes un negocio local?</h3>
+          <p>Llega a cientos de personas en tu pueblo que buscan propiedades activamente. Espacio publicitario desde RD$500/semana.</p>
+          <a href="anunciar.html" class="btn-primary">Quiero anunciarme →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ CTA ══════════════════════════════════ -->
+  <section class="section cta-section">
+    <div class="container">
+      <div class="cta-inner">
+        <h2>¿Tienes una propiedad?<br><em>Publícala gratis.</em></h2>
+        <p>Crea tu cuenta, sube tu propiedad en minutos y recibe interesados directamente por WhatsApp o chat.</p>
+        <div class="cta-buttons">
+          <a href="registro.html" class="btn-primary btn-lg">Crear cuenta gratis</a>
+          <a href="publicar.html" class="btn-outline btn-lg">Publicar propiedad</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════ FOOTER ═══════════════════════════════ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="index.html" class="logo">
+            <span class="logo-icon">⌂</span>
+            <span class="logo-text">InmoLocal</span>
+          </a>
+          <p>Conectando personas con sus hogares ideales en nuestra comunidad.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Propiedades</h4>
+          <a href="#">Casas en venta</a>
+          <a href="#">Casas en alquiler</a>
+          <a href="#">Apartamentos en venta</a>
+          <a href="#">Apartamentos en alquiler</a>
+        </div>
+        <div class="footer-links">
+          <h4>Plataforma</h4>
+          <a href="publicar.html">Publicar propiedad</a>
+          <a href="registro.html">Crear cuenta</a>
+          <a href="anunciar.html">Anunciarte aquí</a>
+          <a href="contacto.html">Contacto</a>
+        </div>
+        <div class="footer-links">
+          <h4>Legal</h4>
+          <a href="#">Términos de uso</a>
+          <a href="#">Privacidad</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 InmoLocal. Hecho con ❤️ para nuestra comunidad.</p>
+        <p>DESARROLLADO POR SAMIL GERALDO PEREZ Y ANGEL LUIS REYES.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
