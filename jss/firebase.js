@@ -1,260 +1,240 @@
 /* ═══════════════════════════════════════════════════════════
    InmoLocal — firebase.js
-   Configuración y helpers de Firebase
-   
-   PASOS PARA CONECTAR:
-   1. Ve a https://console.firebase.google.com
-   2. Crea un proyecto nuevo → "InmoLocal"
-   3. Agrega una app Web (</>) → copia tu firebaseConfig
-   4. Reemplaza el objeto firebaseConfig de abajo
-   5. Activa: Authentication (Email/Google), Firestore, Storage
+   Config real conectada — proyecto: proyectotenshi
 ═══════════════════════════════════════════════════════════ */
 
-// ─── 1. IMPORTAR Firebase (CDN — agregar en el <head> de cada HTML) ───
-// <script type="module" src="js/firebase.js"></script>
-// Agrega estos scripts ANTES en el HTML:
-// <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-// <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-// <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-// <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
-
-// ─── 2. TU CONFIGURACIÓN (reemplazar con la tuya) ───
 const firebaseConfig = {
-  apiKey:            "TU_API_KEY",
-  authDomain:        "inmoloca.firebaseapp.com",
-  projectId:         "inmoloca",
-  storageBucket:     "inmoloca.appspot.com",
-  messagingSenderId: "123456789",
-  appId:             "1:123456789:web:abcdef"
+  apiKey:            "AIzaSyCGkSJdNj6veRnnD6Mr0xXIJQ9JxD3FESU",
+  authDomain:        "proyectotenshi.firebaseapp.com",
+  projectId:         "proyectotenshi",
+  storageBucket:     "proyectotenshi.firebasestorage.app",
+  messagingSenderId: "728795278216",
+  appId:             "1:728795278216:web:9f4d546fb1fd3dc9eb683d"
 };
 
-// ─── 3. INICIALIZAR ───
-// firebase.initializeApp(firebaseConfig);
-// const db      = firebase.firestore();
-// const auth    = firebase.auth();
-// const storage = firebase.storage();
+// Inicializar Firebase (compat SDK — funciona con los scripts del <head>)
+firebase.initializeApp(firebaseConfig);
+
+const db      = firebase.firestore();
+const auth    = firebase.auth();
+const storage = firebase.storage();
 
 // ════════════════════════════════════════════════════
-// ESTRUCTURA DE COLECCIONES EN FIRESTORE
+// AUTH — LISTENER GLOBAL
+// Alterna navbar entre estado guest/user en todas las páginas
 // ════════════════════════════════════════════════════
-/*
-  /users/{userId}
-    - nombre: string
-    - email: string
-    - telefono: string (WhatsApp)
-    - avatarUrl: string
-    - rol: "propietario" | "visitante"
-    - creadoEn: timestamp
-    - verificado: boolean
+auth.onAuthStateChanged(async (user) => {
+  const authGuest      = document.getElementById('authGuest');
+  const authUser       = document.getElementById('authUser');
+  const avatarFallback = document.getElementById('avatarFallback');
+  const navAvatar      = document.getElementById('navAvatar');
 
-  /propiedades/{propiedadId}
-    - titulo: string
-    - descripcion: string
-    - tipo: "casa" | "apartamento"
-    - modalidad: "venta" | "alquiler"
-    - precio: number
-    - moneda: "DOP" | "USD"
-    - habitaciones: number
-    - banos: number
-    - metrosCuadrados: number
-    - direccion: string
-    - sector: string
-    - fotos: array<string>        (URLs de Storage, máx 10)
-    - videos: array<string>       (URLs de Storage, máx 3)
-    - propietarioId: string       (ref a users)
-    - propietarioNombre: string
-    - propietarioTelefono: string
-    - estado: "disponible" | "vendido" | "alquilado"
-    - destacada: boolean
-    - vistas: number
-    - creadaEn: timestamp
-    - actualizadaEn: timestamp
+  if (user) {
+    authGuest?.classList.add('hidden');
+    authUser?.classList.remove('hidden');
 
-  /chats/{chatId}
-    - participantes: array<userId>       [comprador, vendedor]
-    - propiedadId: string
-    - ultimoMensaje: string
-    - ultimaFecha: timestamp
-    - noLeidos: {userId: number}
+    const ini = (user.displayName || user.email || 'U')[0].toUpperCase();
+    if (avatarFallback) avatarFallback.textContent = ini;
+    if (navAvatar)      navAvatar.textContent      = ini;
 
-    /chats/{chatId}/mensajes/{msgId}
-      - texto: string
-      - autorId: string
-      - fecha: timestamp
-      - leido: boolean
+    // Redirigir fuera de login/registro si ya está autenticado
+    const page = window.location.pathname;
+    if (page.includes('login.html') || page.includes('registro.html')) {
+      const redirect = new URLSearchParams(window.location.search).get('redirect') || 'index.html';
+      window.location.href = redirect;
+    }
 
-  /anuncios/{anuncioId}
-    - titulo: string
-    - imagenUrl: string
-    - linkDestino: string
-    - posicion: "banner-top" | "sidebar" | "en-grid"
-    - activo: boolean
-    - fechaInicio: timestamp
-    - fechaFin: timestamp
-    - clicks: number
+  } else {
+    authGuest?.classList.remove('hidden');
+    authUser?.classList.add('hidden');
 
-  /favoritos/{userId}/lista/{propiedadId}
-    - propiedadId: string
-    - guardadoEn: timestamp
-*/
+    // Redirigir a login si la página requiere autenticación
+    const protegidas = ['publicar.html', 'chat.html', 'perfil.html', 'mis-propiedades.html'];
+    const page = window.location.pathname;
+    if (protegidas.some(p => page.includes(p))) {
+      window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.pathname);
+    }
+  }
+});
 
 // ════════════════════════════════════════════════════
-// FUNCIONES DE AUTENTICACIÓN
+// AUTENTICACIÓN
 // ════════════════════════════════════════════════════
 
 async function registrarUsuario(email, password, nombre, telefono) {
-  try {
-    const cred = await auth.createUserWithEmailAndPassword(email, password);
-    await db.collection('users').doc(cred.user.uid).set({
-      nombre,
-      email,
-      telefono,
-      avatarUrl: '',
-      rol: 'visitante',
-      verificado: false,
-      creadoEn: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    await cred.user.updateProfile({ displayName: nombre });
-    return { ok: true, user: cred.user };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
+  const cred = await auth.createUserWithEmailAndPassword(email, password);
+  await cred.user.updateProfile({ displayName: nombre });
+  await db.collection('users').doc(cred.user.uid).set({
+    nombre,
+    email,
+    telefono: '+1' + telefono.replace(/\D/g, ''),
+    avatarUrl:   '',
+    rol:         'visitante',
+    verificado:  false,
+    creadoEn:    firebase.firestore.FieldValue.serverTimestamp()
+  });
+  return cred.user;
 }
 
 async function iniciarSesion(email, password) {
-  try {
-    const cred = await auth.signInWithEmailAndPassword(email, password);
-    return { ok: true, user: cred.user };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
+  const cred = await auth.signInWithEmailAndPassword(email, password);
+  return cred.user;
 }
 
 async function iniciarConGoogle() {
-  try {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    const cred = await auth.signInWithPopup(provider);
-    // Crear perfil si es la primera vez
-    const docRef = db.collection('users').doc(cred.user.uid);
-    const snap = await docRef.get();
-    if (!snap.exists) {
-      await docRef.set({
-        nombre: cred.user.displayName,
-        email: cred.user.email,
-        telefono: '',
-        avatarUrl: cred.user.photoURL || '',
-        rol: 'visitante',
-        verificado: false,
-        creadoEn: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-    return { ok: true, user: cred.user };
-  } catch (err) {
-    return { ok: false, error: err.message };
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const cred = await auth.signInWithPopup(provider);
+  const snap = await db.collection('users').doc(cred.user.uid).get();
+  if (!snap.exists) {
+    await db.collection('users').doc(cred.user.uid).set({
+      nombre:     cred.user.displayName || '',
+      email:      cred.user.email,
+      telefono:   '',
+      avatarUrl:  cred.user.photoURL || '',
+      rol:        'visitante',
+      verificado: false,
+      creadoEn:   firebase.firestore.FieldValue.serverTimestamp()
+    });
   }
+  return cred.user;
 }
 
-function cerrarSesion() {
-  return auth.signOut();
+async function cerrarSesion() {
+  await auth.signOut();
+  window.location.href = 'index.html';
 }
 
 // ════════════════════════════════════════════════════
-// FUNCIONES DE PROPIEDADES
+// PROPIEDADES
 // ════════════════════════════════════════════════════
 
-async function obtenerPropiedades(filtros = {}) {
-  try {
-    let query = db.collection('propiedades').where('estado', '==', 'disponible');
-
-    if (filtros.tipo)     query = query.where('tipo', '==', filtros.tipo);
-    if (filtros.modalidad) query = query.where('modalidad', '==', filtros.modalidad);
-    if (filtros.precioMax) query = query.where('precio', '<=', filtros.precioMax);
-
-    query = query.orderBy('destacada', 'desc').orderBy('creadaEn', 'desc').limit(20);
-
-    const snap = await query.get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (err) {
-    console.error('Error obteniendo propiedades:', err);
-    return [];
-  }
+async function obtenerPropiedades(filtros = {}, limite = 20) {
+  let query = db.collection('propiedades').where('estado', '==', 'disponible');
+  if (filtros.tipo)      query = query.where('tipo',      '==', filtros.tipo);
+  if (filtros.modalidad) query = query.where('modalidad', '==', filtros.modalidad);
+  query = query.orderBy('destacada', 'desc').orderBy('creadaEn', 'desc').limit(limite);
+  const snap = await query.get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 async function obtenerPropiedad(id) {
-  try {
-    const doc = await db.collection('propiedades').doc(id).get();
-    if (!doc.exists) return null;
-    // Incrementar vistas
-    db.collection('propiedades').doc(id).update({
-      vistas: firebase.firestore.FieldValue.increment(1)
-    });
-    return { id: doc.id, ...doc.data() };
-  } catch (err) {
-    console.error('Error obteniendo propiedad:', err);
-    return null;
-  }
+  const doc = await db.collection('propiedades').doc(id).get();
+  if (!doc.exists) return null;
+  db.collection('propiedades').doc(id).update({
+    vistas: firebase.firestore.FieldValue.increment(1)
+  });
+  return { id: doc.id, ...doc.data() };
 }
 
-async function publicarPropiedad(datos, fotos, videos) {
-  try {
-    const user = auth.currentUser;
-    if (!user) throw new Error('Debes iniciar sesión');
+async function publicarPropiedad(datos, fotos, videos, onProgress) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Debes iniciar sesión');
 
-    // Subir fotos (máx 10)
-    const fotosUrls = [];
-    for (let i = 0; i < Math.min(fotos.length, 10); i++) {
-      const ref = storage.ref(`propiedades/${Date.now()}_foto_${i}`);
-      await ref.put(fotos[i]);
-      fotosUrls.push(await ref.getDownloadURL());
-    }
+  const userDoc  = await db.collection('users').doc(user.uid).get();
+  const userData = userDoc.data() || {};
 
-    // Subir videos (máx 3, validar duración desde frontend)
-    const videosUrls = [];
-    for (let i = 0; i < Math.min(videos.length, 3); i++) {
-      const ref = storage.ref(`propiedades/${Date.now()}_video_${i}`);
-      await ref.put(videos[i]);
-      videosUrls.push(await ref.getDownloadURL());
-    }
-
-    const docRef = await db.collection('propiedades').add({
-      ...datos,
-      fotos: fotosUrls,
-      videos: videosUrls,
-      propietarioId: user.uid,
-      estado: 'disponible',
-      destacada: false,
-      vistas: 0,
-      creadaEn: firebase.firestore.FieldValue.serverTimestamp(),
-      actualizadaEn: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    return { ok: true, id: docRef.id };
-  } catch (err) {
-    return { ok: false, error: err.message };
+  // Subir fotos (máx 10)
+  const fotosUrls = [];
+  for (let i = 0; i < Math.min(fotos.length, 10); i++) {
+    onProgress?.(`Subiendo foto ${i + 1}/${fotos.length}...`, ((i + 1) / fotos.length) * 60);
+    const ref  = storage.ref(`propiedades/${user.uid}_${Date.now()}_foto${i}`);
+    const snap = await ref.put(fotos[i]);
+    fotosUrls.push(await snap.ref.getDownloadURL());
   }
+
+  // Subir videos (máx 3)
+  const videosUrls = [];
+  for (let i = 0; i < Math.min(videos.length, 3); i++) {
+    onProgress?.(`Subiendo video ${i + 1}/${videos.length}...`, 60 + ((i + 1) / videos.length) * 35);
+    const ref  = storage.ref(`propiedades/${user.uid}_${Date.now()}_video${i}`);
+    const snap = await ref.put(videos[i]);
+    videosUrls.push(await snap.ref.getDownloadURL());
+  }
+
+  onProgress?.('Guardando publicación...', 98);
+
+  const ref = await db.collection('propiedades').add({
+    ...datos,
+    fotos:               fotosUrls,
+    videos:              videosUrls,
+    propietarioId:       user.uid,
+    propietarioNombre:   userData.nombre   || user.displayName || '',
+    propietarioTelefono: datos.mostrarTelefono ? (userData.telefono || '') : '',
+    estado:        'disponible',
+    destacada:     false,
+    vistas:        0,
+    creadaEn:      firebase.firestore.FieldValue.serverTimestamp(),
+    actualizadaEn: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  onProgress?.('¡Publicado!', 100);
+  return ref.id;
+}
+
+async function actualizarPropiedad(id, datos) {
+  await db.collection('propiedades').doc(id).update({
+    ...datos,
+    actualizadaEn: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+async function eliminarPropiedad(id) {
+  await db.collection('propiedades').doc(id).delete();
+}
+
+async function obtenerMisPropiedades() {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const snap = await db.collection('propiedades')
+    .where('propietarioId', '==', user.uid)
+    .orderBy('creadaEn', 'desc')
+    .get();
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 // ════════════════════════════════════════════════════
-// FUNCIONES DE CHAT
+// FAVORITOS
 // ════════════════════════════════════════════════════
 
-async function iniciarOAbrirChat(compradorId, vendedorId, propiedadId) {
-  // Buscar si ya existe un chat entre estos dos para esta propiedad
+async function toggleFavorito(propiedadId) {
+  const user = auth.currentUser;
+  if (!user) return null;
+  const ref  = db.collection('favoritos').doc(user.uid).collection('lista').doc(propiedadId);
+  const snap = await ref.get();
+  if (snap.exists) { await ref.delete(); return false; }
+  await ref.set({ propiedadId, guardadoEn: firebase.firestore.FieldValue.serverTimestamp() });
+  return true;
+}
+
+async function obtenerFavoritos() {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const snap = await db.collection('favoritos').doc(user.uid).collection('lista').get();
+  return snap.docs.map(d => d.id);
+}
+
+// ════════════════════════════════════════════════════
+// CHAT
+// ════════════════════════════════════════════════════
+
+async function iniciarOAbrirChat(vendedorId, propiedadId) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Inicia sesión para chatear');
+
   const snap = await db.collection('chats')
-    .where('participantes', 'array-contains', compradorId)
+    .where('participantes', 'array-contains', user.uid)
     .where('propiedadId', '==', propiedadId)
     .get();
 
   const existente = snap.docs.find(d => d.data().participantes.includes(vendedorId));
   if (existente) return existente.id;
 
-  // Crear nuevo chat
   const ref = await db.collection('chats').add({
-    participantes: [compradorId, vendedorId],
+    participantes:  [user.uid, vendedorId],
     propiedadId,
-    ultimoMensaje: '',
-    ultimaFecha: firebase.firestore.FieldValue.serverTimestamp(),
-    noLeidos: { [compradorId]: 0, [vendedorId]: 0 }
+    ultimoMensaje:  '',
+    ultimaFecha:    firebase.firestore.FieldValue.serverTimestamp(),
+    noLeidos:       { [user.uid]: 0, [vendedorId]: 0 }
   });
   return ref.id;
 }
@@ -263,22 +243,19 @@ async function enviarMensaje(chatId, texto) {
   const user = auth.currentUser;
   if (!user) return;
 
-  const batch = db.batch();
-
+  const batch  = db.batch();
   const msgRef = db.collection('chats').doc(chatId).collection('mensajes').doc();
   batch.set(msgRef, {
     texto,
     autorId: user.uid,
-    fecha: firebase.firestore.FieldValue.serverTimestamp(),
-    leido: false
+    fecha:   firebase.firestore.FieldValue.serverTimestamp(),
+    leido:   false
   });
-
   const chatRef = db.collection('chats').doc(chatId);
   batch.update(chatRef, {
     ultimoMensaje: texto,
-    ultimaFecha: firebase.firestore.FieldValue.serverTimestamp()
+    ultimaFecha:   firebase.firestore.FieldValue.serverTimestamp()
   });
-
   await batch.commit();
 }
 
@@ -286,56 +263,74 @@ function escucharMensajes(chatId, callback) {
   return db.collection('chats').doc(chatId)
     .collection('mensajes')
     .orderBy('fecha', 'asc')
-    .onSnapshot(snap => {
-      const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      callback(msgs);
-    });
+    .onSnapshot(snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+}
+
+function escucharChats(userId, callback) {
+  return db.collection('chats')
+    .where('participantes', 'array-contains', userId)
+    .orderBy('ultimaFecha', 'desc')
+    .onSnapshot(snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
 }
 
 // ════════════════════════════════════════════════════
-// FUNCIONES DE ANUNCIOS
+// ANUNCIOS
 // ════════════════════════════════════════════════════
 
 async function obtenerAnuncios(posicion) {
-  const hoy = new Date();
+  const hoy  = new Date();
   const snap = await db.collection('anuncios')
     .where('posicion', '==', posicion)
-    .where('activo', '==', true)
-    .where('fechaFin', '>=', hoy)
+    .where('activo',   '==', true)
     .get();
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(a => {
+      const fin = a.fechaFin?.toDate?.() || new Date(a.fechaFin);
+      return fin >= hoy;
+    });
+}
+
+async function registrarClickAnuncio(anuncioId) {
+  await db.collection('anuncios').doc(anuncioId).update({
+    clicks: firebase.firestore.FieldValue.increment(1)
+  });
 }
 
 // ════════════════════════════════════════════════════
-// LISTENER DE AUTH GLOBAL
+// USUARIO
 // ════════════════════════════════════════════════════
 
-// Descomentar cuando Firebase esté conectado:
-/*
-auth.onAuthStateChanged(user => {
-  const authGuest = document.getElementById('authGuest');
-  const authUser  = document.getElementById('authUser');
-  const avatarFallback = document.getElementById('avatarFallback');
-  const userAvatar = document.getElementById('userAvatar');
+async function obtenerPerfil(uid) {
+  const doc = await db.collection('users').doc(uid).get();
+  return doc.exists ? { id: doc.id, ...doc.data() } : null;
+}
 
-  if (user) {
-    authGuest?.classList.add('hidden');
-    authUser?.classList.remove('hidden');
+async function actualizarPerfil(datos) {
+  const user = auth.currentUser;
+  if (!user) return;
+  await db.collection('users').doc(user.uid).update({
+    ...datos,
+    actualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  if (datos.nombre) await user.updateProfile({ displayName: datos.nombre });
+}
 
-    if (user.photoURL) {
-      userAvatar.src = user.photoURL;
-    } else if (avatarFallback) {
-      avatarFallback.textContent = (user.displayName || user.email || 'U')[0].toUpperCase();
-    }
-  } else {
-    authGuest?.classList.remove('hidden');
-    authUser?.classList.add('hidden');
-  }
+async function subirAvatar(file) {
+  const user = auth.currentUser;
+  if (!user) return null;
+  const ref  = storage.ref(`avatars/${user.uid}`);
+  const snap = await ref.put(file);
+  const url  = await snap.ref.getDownloadURL();
+  await user.updateProfile({ photoURL: url });
+  await db.collection('users').doc(user.uid).update({ avatarUrl: url });
+  return url;
+}
+
+// ─── Botón logout global (funciona en cualquier página) ───
+document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  await cerrarSesion();
 });
-*/
 
-// Exportar funciones para usar en otras páginas
-// (cuando uses <script type="module">)
-// export { registrarUsuario, iniciarSesion, iniciarConGoogle, ... };
-
-console.log('🔥 firebase.js cargado — conecta tu firebaseConfig para activar');
+console.log('🔥 Firebase conectado — proyecto: proyectotenshi');

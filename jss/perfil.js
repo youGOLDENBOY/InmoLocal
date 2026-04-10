@@ -1,54 +1,143 @@
 /* ═══════════════════════════════════════════════════════════
-   InmoLocal — perfil.js
+   InmoLocal — perfil.js  —  Firebase real
 ═══════════════════════════════════════════════════════════ */
 
 const $ = id => document.getElementById(id);
-
-// ─── Demo user ───
-const DEMO_USER = {
-  nombre: 'Sam Pérez',
-  email: 'sam@ejemplo.com',
-  telefono: '8090000000',
-  bio: '',
-  avatarUrl: '',
-};
+let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  cargarPerfil(DEMO_USER);
+  auth.onAuthStateChanged(async (user) => {
+    if (!user) { window.location.href = 'login.html'; return; }
+    currentUser = user;
+
+    const perfil = await obtenerPerfil(user.uid);
+    cargarPerfil(user, perfil);
+    await cargarMisPropiedades();
+    await cargarFavoritos();
+  });
+
   setupTabs();
   setupPasswordToggles();
-  setupFavBtns();
   setupAcciones();
-
-  // CON FIREBASE:
-  // auth.onAuthStateChanged(async user => {
-  //   if (!user) { window.location.href = 'login.html'; return; }
-  //   const doc = await db.collection('users').doc(user.uid).get();
-  //   cargarPerfil({ ...doc.data(), uid: user.uid });
-  // });
 });
 
-// ─── Cargar datos en UI ───
-function cargarPerfil(user) {
-  const ini = (user.nombre || user.email || 'U')[0].toUpperCase();
+// ─── Cargar datos ───
+function cargarPerfil(user, perfil) {
+  const nombre = perfil?.nombre || user.displayName || 'Usuario';
+  const ini    = nombre[0].toUpperCase();
 
-  $('perfilAvatar').textContent = ini;
-  $('navAvatar').textContent    = ini;
-  $('perfilNombre').textContent = user.nombre || 'Tu nombre';
-  $('perfilEmail').textContent  = user.email  || '';
-  $('avatarPreview').textContent = ini;
+  if ($('perfilAvatar')) $('perfilAvatar').textContent = ini;
+  if ($('navAvatar'))    $('navAvatar').textContent    = ini;
+  if ($('perfilNombre')) $('perfilNombre').textContent = nombre;
+  if ($('perfilEmail'))  $('perfilEmail').textContent  = user.email;
+  if ($('avatarPreview')) $('avatarPreview').textContent = ini;
 
-  // Rellenar formulario datos
-  if ($('editNombre'))   $('editNombre').value   = user.nombre   || '';
-  if ($('editEmail'))    $('editEmail').value     = user.email    || '';
-  if ($('editTelefono')) $('editTelefono').value  = user.telefono || '';
-  if ($('editBio'))      $('editBio').value       = user.bio      || '';
+  if ($('editNombre'))   $('editNombre').value   = nombre;
+  if ($('editEmail'))    $('editEmail').value     = user.email;
+  if ($('editTelefono')) $('editTelefono').value  = (perfil?.telefono || '').replace('+1', '');
+  if ($('editBio'))      $('editBio').value       = perfil?.bio || '';
 
-  // Stats (demo)
-  $('statProps').textContent  = '2';
-  $('statVistas').textContent = '65';
-  $('statMsgs').textContent   = '4';
+  // Avatar foto real
+  const foto = perfil?.avatarUrl || user.photoURL;
+  if (foto && $('perfilAvatar')) {
+    $('perfilAvatar').innerHTML = `<img src="${foto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  }
 }
+
+async function cargarMisPropiedades() {
+  const props = await obtenerMisPropiedades();
+  $('statProps').textContent  = props.length;
+
+  let totalVistas = 0;
+  props.forEach(p => { totalVistas += p.vistas || 0; });
+  $('statVistas').textContent = totalVistas;
+
+  const grid = $('myPropsGrid');
+  if (!grid) return;
+
+  if (!props.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-light)">
+      <p style="font-size:32px">🏠</p>
+      <p>No has publicado propiedades aún.</p>
+      <a href="publicar.html" class="btn-primary" style="margin-top:16px;display:inline-flex">Publicar mi primera propiedad</a>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = props.map(p => {
+    const foto    = p.fotos?.[0] ? `<img src="${p.fotos[0]}" style="width:100%;height:100%;object-fit:cover">` : (p.tipo === 'casa' ? '🏠' : '🏢');
+    const precio  = (p.precio || 0).toLocaleString('es-DO');
+    const moneda  = p.moneda === 'DOP' ? 'RD$' : 'USD$';
+    const sufijo  = p.modalidad === 'alquiler' ? '/mes' : '';
+    const estadoClass = { disponible: 'status-disponible', pausada: 'status-pausada', vendida: 'status-vendida' }[p.estado] || 'status-disponible';
+    const estadoLabel = { disponible: 'Disponible', pausada: 'Pausada', vendida: 'Vendida/Alquilada' }[p.estado] || 'Disponible';
+
+    return `<div class="my-prop-card">
+      <div class="my-prop-img">${foto}</div>
+      <div class="my-prop-body">
+        <div class="my-prop-head">
+          <div>
+            <p class="my-prop-price">${moneda} ${precio}${sufijo}</p>
+            <h3 class="my-prop-title">${p.titulo}</h3>
+            <p class="my-prop-loc">📍 ${p.direccion}</p>
+          </div>
+          <span class="status-badge ${estadoClass}">${estadoLabel}</span>
+        </div>
+        <div class="my-prop-stats">
+          <span>👁 ${p.vistas || 0} vistas</span>
+        </div>
+        <div class="my-prop-actions">
+          <a href="propiedad.html?id=${p.id}" class="btn-outline btn-sm">Ver</a>
+          ${p.estado === 'disponible'
+            ? `<button class="btn-danger btn-sm" onclick="pausarProp('${p.id}')">⏸ Pausar</button>`
+            : `<button class="btn-primary btn-sm" onclick="activarProp('${p.id}')">▶ Activar</button>`}
+          <button class="btn-danger btn-sm" onclick="eliminarProp('${p.id}')">🗑 Eliminar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function cargarFavoritos() {
+  const ids   = await obtenerFavoritos();
+  const grid  = $('favoritosGrid');
+  $('statMsgs').textContent = ids.length; // reutilizamos el stat temporalmente
+
+  if (!ids.length || !grid) return;
+
+  // Obtener datos de cada propiedad favorita
+  const props = await Promise.all(ids.map(id => db.collection('propiedades').doc(id).get()));
+  const valid = props.filter(d => d.exists).map(d => ({ id: d.id, ...d.data() }));
+
+  grid.innerHTML = valid.map(p => {
+    const foto   = p.fotos?.[0] ? `<img src="${p.fotos[0]}" style="width:100%;height:100%;object-fit:cover">` : (p.tipo === 'casa' ? '🏠' : '🏢');
+    const precio = (p.precio || 0).toLocaleString('es-DO');
+    const moneda = p.moneda === 'DOP' ? 'RD$' : 'USD$';
+    const sufijo = p.modalidad === 'alquiler' ? '<small>/mes</small>' : '';
+    return `<article class="prop-card">
+      <div class="prop-img-wrap">
+        <div class="prop-img-placeholder">${foto}</div>
+        <div class="prop-badges">
+          <span class="badge badge-${p.modalidad}">${p.modalidad === 'venta' ? 'Venta' : 'Alquiler'}</span>
+        </div>
+        <button class="fav-btn active" onclick="quitarFav('${p.id}', this)" title="Quitar">♥</button>
+      </div>
+      <div class="prop-body">
+        <p class="prop-price">${moneda} ${precio} ${sufijo}</p>
+        <h3 class="prop-title">${p.titulo}</h3>
+        <p class="prop-location">📍 ${p.direccion}</p>
+        <div class="prop-footer">
+          <a href="propiedad.html?id=${p.id}" class="btn-card">Ver propiedad</a>
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+window.quitarFav = async function(propId, btn) {
+  await toggleFavorito(propId);
+  btn.closest('article')?.remove();
+};
 
 // ─── Tabs ───
 function setupTabs() {
@@ -62,7 +151,7 @@ function setupTabs() {
   });
 }
 
-// ─── Toggle password ───
+// ─── Toggle contraseña ───
 function setupPasswordToggles() {
   document.querySelectorAll('.toggle-pw').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -74,141 +163,108 @@ function setupPasswordToggles() {
   });
 }
 
-// ─── Fav buttons ───
-function setupFavBtns() {
-  document.querySelectorAll('.fav-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault(); e.stopPropagation();
-      btn.classList.toggle('active');
-      btn.textContent = btn.classList.contains('active') ? '♥' : '♡';
-    });
-  });
-}
-
 // ─── Acciones ───
 function setupAcciones() {
 
-  // Guardar datos personales
+  // Guardar datos
   $('btnGuardarDatos')?.addEventListener('click', async () => {
     const nombre   = $('editNombre')?.value.trim()   || '';
     const telefono = $('editTelefono')?.value.trim() || '';
     const bio      = $('editBio')?.value.trim()      || '';
-
     if (!nombre) { alert('El nombre es requerido.'); return; }
+    try {
+      await actualizarPerfil({ nombre, telefono: '+1' + telefono.replace(/\D/g,''), bio });
+      $('perfilNombre').textContent = nombre;
+      showAlert('alertDatos', '✓ Datos guardados correctamente', 'success');
+      setTimeout(() => $('alertDatos')?.classList.add('hidden'), 3000);
+    } catch (err) {
+      showAlert('alertDatos', 'Error al guardar: ' + err.message, 'error');
+    }
+  });
 
-    // CON FIREBASE:
-    // const user = auth.currentUser;
-    // await db.collection('users').doc(user.uid).update({ nombre, telefono: '+1'+telefono.replace(/\D/g,''), bio, actualizadoEn: firebase.firestore.FieldValue.serverTimestamp() });
-    // await user.updateProfile({ displayName: nombre });
-
-    $('perfilNombre').textContent = nombre;
-    showAlert('alertDatos', '✓ Datos guardados correctamente', 'success');
-    setTimeout(() => $('alertDatos')?.classList.add('hidden'), 3000);
+  // Avatar
+  [$('avatarInput'), $('avatarInput2')].forEach(input => {
+    input?.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const url = await subirAvatar(file);
+        const img = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+        if ($('perfilAvatar'))  $('perfilAvatar').innerHTML  = img;
+        if ($('avatarPreview')) $('avatarPreview').innerHTML = img;
+      } catch (err) {
+        alert('Error subiendo imagen: ' + err.message);
+      }
+    });
   });
 
   // Cambiar contraseña
   $('btnCambiarPw')?.addEventListener('click', async () => {
-    const actual   = $('pwActual')?.value   || '';
-    const nueva    = $('pwNueva')?.value    || '';
-    const confirm  = $('pwConfirm')?.value  || '';
+    const actual  = $('pwActual')?.value  || '';
+    const nueva   = $('pwNueva')?.value   || '';
+    const confirm = $('pwConfirm')?.value || '';
 
     if (!actual || !nueva) { showAlert('alertPw', 'Completa todos los campos.', 'error'); return; }
-    if (nueva.length < 6)  { showAlert('alertPw', 'La nueva contraseña debe tener al menos 6 caracteres.', 'error'); return; }
+    if (nueva.length < 6)  { showAlert('alertPw', 'Mínimo 6 caracteres.', 'error'); return; }
     if (nueva !== confirm)  { showAlert('alertPw', 'Las contraseñas no coinciden.', 'error'); return; }
 
-    // CON FIREBASE:
-    // try {
-    //   const user = auth.currentUser;
-    //   const cred = firebase.auth.EmailAuthProvider.credential(user.email, actual);
-    //   await user.reauthenticateWithCredential(cred);
-    //   await user.updatePassword(nueva);
-    //   showAlert('alertPw', '✓ Contraseña cambiada exitosamente.', 'success');
-    //   ['pwActual','pwNueva','pwConfirm'].forEach(id => $(id) && ($(id).value = ''));
-    // } catch(err) {
-    //   showAlert('alertPw', err.code === 'auth/wrong-password' ? 'Contraseña actual incorrecta.' : 'Error: ' + err.message, 'error');
-    // }
-
-    showAlert('alertPw', '✓ Contraseña cambiada. (Demo — conecta Firebase)', 'success');
-  });
-
-  // Cambiar foto de avatar
-  [$('avatarInput'), $('avatarInput2')].forEach(input => {
-    input?.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const img = document.createElement('img');
-        img.src = ev.target.result;
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
-        $('perfilAvatar').innerHTML = '';
-        $('perfilAvatar').appendChild(img.cloneNode());
-        $('avatarPreview')?.replaceChildren(img);
-      };
-      reader.readAsDataURL(file);
-      // CON FIREBASE: subir a storage y actualizar perfil
-    });
+    try {
+      const cred = firebase.auth.EmailAuthProvider.credential(currentUser.email, actual);
+      await currentUser.reauthenticateWithCredential(cred);
+      await currentUser.updatePassword(nueva);
+      showAlert('alertPw', '✓ Contraseña cambiada exitosamente.', 'success');
+      ['pwActual','pwNueva','pwConfirm'].forEach(id => { if ($(id)) $(id).value = ''; });
+    } catch (err) {
+      const msg = err.code === 'auth/wrong-password' ? 'Contraseña actual incorrecta.' : 'Error: ' + err.message;
+      showAlert('alertPw', msg, 'error');
+    }
   });
 
   // Eliminar cuenta
   $('btnEliminarCuenta')?.addEventListener('click', () => {
-    mostrarModal(
-      '¿Eliminar tu cuenta?',
-      'Perderás todas tus propiedades, mensajes y favoritos. Esta acción es permanente.',
-      async () => {
-        // CON FIREBASE: await auth.currentUser.delete()
-        alert('Cuenta eliminada. (Demo)');
+    mostrarModal('¿Eliminar tu cuenta?', 'Perderás todas tus propiedades, mensajes y favoritos. Esta acción es permanente.', async () => {
+      try {
+        await db.collection('users').doc(currentUser.uid).delete();
+        await currentUser.delete();
         window.location.href = 'index.html';
+      } catch (err) {
+        if (err.code === 'auth/requires-recent-login') {
+          alert('Por seguridad, cierra sesión, vuelve a entrar y luego elimina la cuenta.');
+        }
       }
-    );
-  });
-
-  // Logout
-  $('logoutBtn')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    // CON FIREBASE: await auth.signOut();
-    window.location.href = 'index.html';
+    });
   });
 }
 
 // ─── Acciones propiedades ───
-window.editarPropiedad = function(id) {
-  window.location.href = `publicar.html?editar=${id}`;
-};
-window.pausarPropiedad = function(id) {
-  mostrarModal('¿Pausar propiedad?', 'La propiedad no será visible hasta que la reactives.', () => {
-    // CON FIREBASE: db.collection('propiedades').doc(id).update({ estado: 'pausada' });
-    alert('Propiedad pausada. (Demo)');
-    location.reload();
+window.pausarProp = async (id) => {
+  mostrarModal('¿Pausar propiedad?', 'No será visible hasta que la reactives.', async () => {
+    await actualizarPropiedad(id, { estado: 'pausada' });
+    await cargarMisPropiedades();
   });
 };
-window.activarPropiedad = function(id) {
-  // CON FIREBASE: db.collection('propiedades').doc(id).update({ estado: 'disponible' });
-  alert('Propiedad activada. (Demo)');
-  location.reload();
+window.activarProp = async (id) => {
+  await actualizarPropiedad(id, { estado: 'disponible' });
+  await cargarMisPropiedades();
 };
-window.eliminarPropiedad = function(id) {
-  mostrarModal('¿Eliminar propiedad?', 'Esta acción no se puede deshacer. Todas las fotos y mensajes se perderán.', async () => {
-    // CON FIREBASE: await db.collection('propiedades').doc(id).delete();
-    alert('Propiedad eliminada. (Demo)');
-    location.reload();
+window.eliminarProp = (id) => {
+  mostrarModal('¿Eliminar propiedad?', 'Esta acción no se puede deshacer.', async () => {
+    await eliminarPropiedad(id);
+    await cargarMisPropiedades();
   });
 };
 
-// ─── Modal de confirmación ───
+// ─── Modal ───
 function mostrarModal(titulo, msg, onConfirm) {
   $('modalTitle').textContent = titulo;
   $('modalMsg').textContent   = msg;
   $('modalConfirm').classList.remove('hidden');
-
-  const btn = $('modalConfirmBtn');
-  btn.onclick = () => {
+  $('modalConfirmBtn').onclick = () => {
     $('modalConfirm').classList.add('hidden');
     onConfirm();
   };
 }
 
-// ─── Helper alertas ───
 function showAlert(id, msg, type) {
   const el = $(id);
   if (!el) return;
