@@ -1,32 +1,75 @@
 /* ═══════════════════════════════════════════════════════════
-   InmoLocal — main.js
-   Lógica de UI: navbar, filtros, favoritos, hamburger
-   (Firebase se conecta en firebase.js en la siguiente fase)
+   InmoLocal — main.js  v2
+   Auth real · Mobile menu · Filtros · Animaciones
 ═══════════════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  // ─── NAVBAR: scroll effect ───
+  // ─── Navbar scroll effect ───
   const navbar = document.getElementById('navbar');
   window.addEventListener('scroll', () => {
-    navbar.classList.toggle('scrolled', window.scrollY > 40);
+    navbar?.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
+
+  // ─── Hamburger / mobile menu ───
+  const hamburger  = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobileMenu');
+
+  hamburger?.addEventListener('click', () => {
+    const isOpen = mobileMenu.classList.toggle('open');
+    hamburger.classList.toggle('open', isOpen);
+    // Bloquear scroll del body cuando el menú está abierto
+    document.body.style.overflow = isOpen ? 'hidden' : '';
   });
 
-  // ─── HAMBURGER ───
-  const hamburger = document.getElementById('hamburger');
-  const mobileMenu = document.getElementById('mobileMenu');
-  if (hamburger && mobileMenu) {
-    hamburger.addEventListener('click', () => {
-      mobileMenu.classList.toggle('open');
-      const spans = hamburger.querySelectorAll('span');
-      const isOpen = mobileMenu.classList.contains('open');
-      spans[0].style.transform = isOpen ? 'rotate(45deg) translate(5px,5px)' : '';
-      spans[1].style.opacity  = isOpen ? '0' : '1';
-      spans[2].style.transform = isOpen ? 'rotate(-45deg) translate(5px,-5px)' : '';
+  // Cerrar menú al hacer tap fuera
+  document.addEventListener('click', (e) => {
+    if (mobileMenu?.classList.contains('open') &&
+        !mobileMenu.contains(e.target) &&
+        !hamburger.contains(e.target)) {
+      cerrarMenu();
+    }
+  });
+
+  // Cerrar al hacer clic en un link del menú
+  mobileMenu?.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      if (!a.id?.includes('Logout')) cerrarMenu();
+    });
+  });
+
+  // ─── Logout botones ───
+  document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await auth.signOut();
+    window.location.href = 'index.html';
+  });
+  document.getElementById('mobileLogoutBtn')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    cerrarMenu();
+    await auth.signOut();
+    window.location.href = 'index.html';
+  });
+
+  // ─── Avatar dropdown — toggle en móvil al tap ───
+  document.getElementById('avatarWrap')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('avatarWrap').classList.toggle('open');
+  });
+  document.addEventListener('click', () => {
+    document.getElementById('avatarWrap')?.classList.remove('open');
+  });
+
+  // ─── Auth state → actualizar navbar ───
+  // firebase.js ya llama onAuthStateChanged globalmente,
+  // pero también lo manejamos aquí para el menú mobile
+  if (typeof auth !== 'undefined') {
+    auth.onAuthStateChanged(async (user) => {
+      actualizarNavbar(user);
     });
   }
 
-  // ─── FILTER CHIPS ───
+  // ─── Filter chips ───
   const chips = document.querySelectorAll('.chip');
   const cards = document.querySelectorAll('.prop-card:not(.ad-card)');
 
@@ -34,114 +77,62 @@ document.addEventListener('DOMContentLoaded', () => {
     chip.addEventListener('click', () => {
       chips.forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
-      const filter = chip.dataset.filter;
-
-      cards.forEach(card => {
-        const type  = card.dataset.type  || '';
-        const modal = card.dataset.modal || '';
-
-        let show = false;
-        if (filter === 'todo') {
-          show = true;
-        } else if (filter === 'casa-venta') {
-          show = type === 'casa' && modal === 'venta';
-        } else if (filter === 'casa-alquiler') {
-          show = type === 'casa' && modal === 'alquiler';
-        } else if (filter === 'apartamento-venta') {
-          show = type === 'apartamento' && modal === 'venta';
-        } else if (filter === 'apartamento-alquiler') {
-          show = type === 'apartamento' && modal === 'alquiler';
-        }
-
-        card.style.display = show ? '' : 'none';
-      });
+      filtrarCards(chip.dataset.filter, cards);
     });
   });
 
-  // ─── VIEW TOGGLE (grid / list) ───
+  // ─── View toggle grid/list ───
   const grid    = document.getElementById('propertiesGrid');
   const btnGrid = document.getElementById('viewGrid');
   const btnList = document.getElementById('viewList');
 
-  if (btnGrid && btnList && grid) {
-    btnGrid.addEventListener('click', () => {
-      grid.classList.remove('list-view');
-      btnGrid.classList.add('active');
-      btnList.classList.remove('active');
-    });
-    btnList.addEventListener('click', () => {
-      grid.classList.add('list-view');
-      btnList.classList.add('active');
-      btnGrid.classList.remove('active');
-    });
-  }
+  btnGrid?.addEventListener('click', () => {
+    grid?.classList.remove('list-view');
+    btnGrid.classList.add('active');
+    btnList?.classList.remove('active');
+  });
+  btnList?.addEventListener('click', () => {
+    grid?.classList.add('list-view');
+    btnList.classList.add('active');
+    btnGrid?.classList.remove('active');
+  });
 
-  // ─── FAVORITE BUTTONS ───
-  const favBtns = document.querySelectorAll('.fav-btn');
-  favBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+  // ─── Fav buttons ───
+  document.querySelectorAll('.fav-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (typeof auth !== 'undefined' && !auth.currentUser) {
+        window.location.href = 'login.html';
+        return;
+      }
       btn.classList.toggle('active');
       btn.textContent = btn.classList.contains('active') ? '♥' : '♡';
-      // TODO: guardar en Firebase Firestore cuando el usuario esté logueado
     });
   });
 
-  // ─── SEARCH BAR (básico, sin Firebase aún) ───
-  const searchBtn = document.getElementById('searchBtn');
-  if (searchBtn) {
-    searchBtn.addEventListener('click', () => {
-      const type  = document.getElementById('filterType')?.value  || '';
-      const modal = document.getElementById('filterModal')?.value || '';
-      const price = document.getElementById('filterPrice')?.value || '';
+  // ─── Search bar ───
+  document.getElementById('searchBtn')?.addEventListener('click', () => {
+    const type  = document.getElementById('filterType')?.value  || '';
+    const modal = document.getElementById('filterModal')?.value || '';
 
-      // Filtrar las tarjetas visibles
-      cards.forEach(card => {
-        const t = card.dataset.type  || '';
-        const m = card.dataset.modal || '';
-
-        const matchType  = !type  || t === type;
-        const matchModal = !modal || m === modal;
-        // Para precio necesitamos Firebase, de momento dejamos pasar
-        const matchPrice = true;
-
-        card.style.display = (matchType && matchModal && matchPrice) ? '' : 'none';
-      });
-
-      // Reset chips
-      chips.forEach(c => c.classList.remove('active'));
-      const todoChip = document.querySelector('.chip[data-filter="todo"]');
-      if (todoChip) todoChip.classList.add('active');
-
-      // Scroll suave a las propiedades
-      document.getElementById('propiedades')?.scrollIntoView({ behavior: 'smooth' });
+    cards.forEach(card => {
+      const t = card.dataset.type  || '';
+      const m = card.dataset.modal || '';
+      const show = (!type || t === type) && (!modal || m === modal);
+      card.style.display = show ? '' : 'none';
     });
-  }
 
-  // ─── HERO STATS (animación contador) ───
-  function animateCount(el, target, duration = 1200) {
-    if (!el) return;
-    let start = 0;
-    const step = target / (duration / 16);
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= target) {
-        el.textContent = target;
-        clearInterval(timer);
-      } else {
-        el.textContent = Math.floor(start);
-      }
-    }, 16);
-  }
+    chips.forEach(c => c.classList.remove('active'));
+    document.querySelector('.chip[data-filter="todo"]')?.classList.add('active');
+    document.getElementById('propiedades')?.scrollIntoView({ behavior: 'smooth' });
+  });
 
-  // Observer para disparar animación al entrar en pantalla
+  // ─── Contador animado stats ───
   const statsEl = document.querySelector('.hero-stats');
   if (statsEl) {
     const obs = new IntersectionObserver((entries) => {
       entries.forEach(e => {
         if (e.isIntersecting) {
-          // Estos números vendrán de Firebase en la siguiente fase
           animateCount(document.getElementById('statTotal'),   12);
           animateCount(document.getElementById('statVenta'),    7);
           animateCount(document.getElementById('statAlquiler'), 5);
@@ -152,57 +143,100 @@ document.addEventListener('DOMContentLoaded', () => {
     obs.observe(statsEl);
   }
 
-  // ─── LOAD MORE (simulado, se reemplaza con paginación Firebase) ───
-  const loadMoreBtn = document.getElementById('loadMoreBtn');
-  if (loadMoreBtn) {
-    loadMoreBtn.addEventListener('click', () => {
-      loadMoreBtn.textContent = 'Cargando...';
-      loadMoreBtn.disabled = true;
-      setTimeout(() => {
-        // TODO: cargar siguiente página de Firebase
-        loadMoreBtn.textContent = 'No hay más propiedades por ahora';
-        loadMoreBtn.style.opacity = '0.5';
-      }, 1000);
+  // ─── Load more ───
+  document.getElementById('loadMoreBtn')?.addEventListener('click', function() {
+    this.textContent = 'No hay más propiedades por ahora';
+    this.style.opacity = '0.5';
+    this.disabled = true;
+  });
+
+  // ─── Card animations on scroll ───
+  const propCards = document.querySelectorAll('.prop-card');
+  if ('IntersectionObserver' in window) {
+    const cardObs = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.style.opacity = '1', i * 50);
+          cardObs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.05 });
+    propCards.forEach(card => {
+      card.style.opacity = '0';
+      card.style.transition = 'opacity .4s ease';
+      cardObs.observe(card);
     });
   }
+});
 
-  // ─── CARD ANIMATION on scroll ───
-  const propCards = document.querySelectorAll('.prop-card');
-  const cardObs = new IntersectionObserver((entries) => {
-    entries.forEach((entry, i) => {
-      if (entry.isIntersecting) {
-        entry.target.style.animationDelay = `${i * 0.05}s`;
-        entry.target.classList.add('visible');
-        cardObs.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.1 });
+// ─── Actualizar navbar según auth state ───
+function actualizarNavbar(user) {
+  const authGuest          = document.getElementById('authGuest');
+  const authUser           = document.getElementById('authUser');
+  const avatarFallback     = document.getElementById('avatarFallback');
+  const mobileUserSection  = document.getElementById('mobileUserSection');
+  const mobileLoggedLinks  = document.getElementById('mobileLoggedLinks');
+  const mobileGuestBtns    = document.getElementById('mobileGuestBtns');
+  const mobileAvatar       = document.getElementById('mobileAvatar');
+  const mobileUserName     = document.getElementById('mobileUserName');
+  const mobileUserEmail    = document.getElementById('mobileUserEmail');
 
-  propCards.forEach(card => cardObs.observe(card));
-
-  // ─── AUTH STATE (placeholder — Firebase lo maneja en firebase.js) ───
-  // Por ahora mostramos el estado "guest" por defecto
-  // En firebase.js: onAuthStateChanged() alternará entre authGuest y authUser
-  const authGuest = document.getElementById('authGuest');
-  const authUser  = document.getElementById('authUser');
-
-  // Simulación: si hay usuario guardado en localStorage (temporal)
-  const mockUser = null; // Se reemplaza con Firebase Auth
-  if (mockUser) {
+  if (user) {
+    // Mostrar estado logueado
     authGuest?.classList.add('hidden');
     authUser?.classList.remove('hidden');
-  }
 
-  // ─── LOGOUT ───
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      // TODO: firebase.auth().signOut()
-      authUser?.classList.add('hidden');
-      authGuest?.classList.remove('hidden');
-    });
-  }
+    const ini = (user.displayName || user.email || 'U')[0].toUpperCase();
+    if (avatarFallback)    avatarFallback.textContent    = ini;
+    if (mobileAvatar)      mobileAvatar.textContent      = ini;
+    if (mobileUserName)    mobileUserName.textContent    = user.displayName || 'Mi cuenta';
+    if (mobileUserEmail)   mobileUserEmail.textContent   = user.email || '';
+    mobileUserSection?.classList.remove('hidden');
+    mobileLoggedLinks?.classList.remove('hidden');
+    mobileGuestBtns?.classList.add('hidden');
 
-  console.log('🏠 InmoLocal — main.js cargado correctamente');
-});
+  } else {
+    // Mostrar estado guest
+    authGuest?.classList.remove('hidden');
+    authUser?.classList.add('hidden');
+    mobileUserSection?.classList.add('hidden');
+    mobileLoggedLinks?.classList.add('hidden');
+    mobileGuestBtns?.classList.remove('hidden');
+  }
+}
+
+// ─── Cerrar menú mobile ───
+window.cerrarMenu = function() {
+  const mobileMenu = document.getElementById('mobileMenu');
+  const hamburger  = document.getElementById('hamburger');
+  mobileMenu?.classList.remove('open');
+  hamburger?.classList.remove('open');
+  document.body.style.overflow = '';
+};
+
+// ─── Filtrar cards ───
+function filtrarCards(filter, cards) {
+  cards.forEach(card => {
+    const type  = card.dataset.type  || '';
+    const modal = card.dataset.modal || '';
+    let show = false;
+    if (filter === 'todo')                   show = true;
+    else if (filter === 'casa-venta')        show = type === 'casa'        && modal === 'venta';
+    else if (filter === 'casa-alquiler')     show = type === 'casa'        && modal === 'alquiler';
+    else if (filter === 'apartamento-venta') show = type === 'apartamento' && modal === 'venta';
+    else if (filter === 'apartamento-alquiler') show = type === 'apartamento' && modal === 'alquiler';
+    card.style.display = show ? '' : 'none';
+  });
+}
+
+// ─── Contador animado ───
+function animateCount(el, target, duration = 1000) {
+  if (!el) return;
+  let start = 0;
+  const step = target / (duration / 16);
+  const timer = setInterval(() => {
+    start += step;
+    if (start >= target) { el.textContent = target; clearInterval(timer); }
+    else el.textContent = Math.floor(start);
+  }, 16);
+}

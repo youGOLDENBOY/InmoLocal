@@ -12,7 +12,7 @@
 </head>
 <body>
 
-  <!-- ═══════════════════════════════ NAVBAR ═══════════════════════════════ -->
+  <!-- NAVBAR -->
   <header class="navbar" id="navbar">
     <div class="nav-inner">
       <a href="index.html" class="logo">
@@ -24,27 +24,26 @@
         <a href="#propiedades">Propiedades</a>
         <a href="#anuncios">Anuncios</a>
         <a href="publicar.html">Publicar</a>
-        <a href="favoritos.html">Favoritos</a>
       </nav>
 
       <div class="nav-actions">
-        <!-- Estado: no logueado -->
+        <!-- Guest -->
         <div class="auth-guest" id="authGuest">
           <a href="login.html" class="btn-outline">Entrar</a>
           <a href="registro.html" class="btn-primary">Registrarme</a>
         </div>
-        <!-- Estado: logueado (oculto por defecto, JS lo activa) -->
+        <!-- Logueado -->
         <div class="auth-user hidden" id="authUser">
           <a href="publicar.html" class="btn-primary">+ Publicar</a>
           <div class="avatar-wrap" id="avatarWrap">
-            <img src="img/avatar-placeholder.png" alt="Mi cuenta" class="avatar" id="userAvatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            <div class="avatar-fallback" id="avatarFallback">S</div>
-            <div class="dropdown-menu" id="dropdownMenu">
-              <a href="perfil.html">Mi perfil</a>
-              <a href="mis-propiedades.html">Mis propiedades</a>
-              <a href="chat.html">Mensajes</a>
+            <div class="avatar-fallback" id="avatarFallback">U</div>
+            <div class="dropdown-menu">
+              <a href="perfil.html">👤 Mi perfil</a>
+              <a href="perfil.html">🏠 Mis propiedades</a>
+              <a href="chat.html">💬 Mensajes</a>
+              <a href="perfil.html#favoritos">❤️ Favoritos</a>
               <hr>
-              <a href="#" id="logoutBtn" class="logout">Cerrar sesión</a>
+              <a href="#" id="logoutBtn" class="logout">🚪 Cerrar sesión</a>
             </div>
           </div>
         </div>
@@ -57,13 +56,35 @@
 
     <!-- Mobile menu -->
     <div class="mobile-menu" id="mobileMenu">
-      <a href="#propiedades">Propiedades</a>
-      <a href="#anuncios">Anuncios</a>
-      <a href="publicar.html">Publicar</a>
-      <a href="favoritos.html">Favoritos</a>
-      <hr>
-      <a href="login.html">Entrar</a>
-      <a href="registro.html">Registrarme</a>
+
+      <!-- Info usuario logueado (oculto si no hay sesión) -->
+      <div class="mobile-user-section hidden" id="mobileUserSection">
+        <div class="avatar-fallback" id="mobileAvatar">U</div>
+        <div>
+          <p class="mobile-user-name" id="mobileUserName">Tu nombre</p>
+          <p class="mobile-user-email" id="mobileUserEmail">correo@ejemplo.com</p>
+        </div>
+      </div>
+
+      <a href="#propiedades" onclick="cerrarMenu()">🏠 Propiedades</a>
+      <a href="#anuncios"    onclick="cerrarMenu()">📢 Anuncios</a>
+      <a href="publicar.html">➕ Publicar propiedad</a>
+
+      <!-- Links si está logueado -->
+      <div id="mobileLoggedLinks" class="hidden">
+        <a href="perfil.html">👤 Mi perfil</a>
+        <a href="chat.html">💬 Mis mensajes</a>
+        <a href="perfil.html">❤️ Favoritos</a>
+        <hr>
+        <a href="#" id="mobileLogoutBtn" class="logout-link">🚪 Cerrar sesión</a>
+      </div>
+
+      <!-- Botones si NO está logueado -->
+      <div class="mobile-auth-btns" id="mobileGuestBtns">
+        <a href="login.html"   class="btn-outline">Entrar</a>
+        <a href="registro.html" class="btn-primary">Registrarme</a>
+      </div>
+
     </div>
   </header>
 
@@ -219,7 +240,7 @@
           <div class="prop-body">
             <p class="prop-price">RD$ 8,500 <small>/mes</small></p>
             <h3 class="prop-title">Apartamento moderno</h3>
-            <p class="prop-location">📍 pueblo nuevo</p>
+            <p class="prop-location">📍 Barrio Los Jardines</p>
             <div class="prop-features">
               <span>🛏 2 hab.</span>
               <span>🚿 1 baño</span>
@@ -330,7 +351,7 @@
           <div class="prop-body">
             <p class="prop-price">RD$ 15,000 <small>/mes</small></p>
             <h3 class="prop-title">Casa familiar con garaje</h3>
-            <p class="prop-location">📍 sector escolar</p>
+            <p class="prop-location">📍 Barrio Nuevo</p>
             <div class="prop-features">
               <span>🛏 3 hab.</span>
               <span>🚿 2 baños</span>
@@ -455,12 +476,16 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <p>© 2026 InmoLocal. Hecho con ❤️ para nuestra comunidad.</p>
-        <p>DESARROLLADO POR SAMIL GERALDO PEREZ Y ANGEL LUIS REYES.</p>
+        <p>© 2025 InmoLocal. Hecho con ❤️ para nuestra comunidad.</p>
       </div>
     </div>
   </footer>
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="js/firebase.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

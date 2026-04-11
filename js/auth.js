@@ -40,14 +40,20 @@ function traducirError(code) {
 }
 
 // ─── Toggle mostrar/ocultar contraseña ───
-document.querySelectorAll('.toggle-pw').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const input = btn.closest('.input-pw-wrap')?.querySelector('input');
-    if (!input) return;
-    const isHidden = input.type === 'password';
-    input.type      = isHidden ? 'text' : 'password';
-    btn.textContent = isHidden ? '🙈' : '👁';
-  });
+// Usamos delegación de eventos para que funcione siempre
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.toggle-pw');
+  if (!btn) return;
+  e.preventDefault();
+  // Buscar el input: primero en el mismo padre, luego en el ancestro .form-group
+  const wrap  = btn.closest('.input-pw-wrap');
+  const input = wrap?.querySelector('input[type="password"], input[type="text"]');
+  if (!input) return;
+  const isHidden  = input.type === 'password';
+  input.type      = isHidden ? 'text' : 'password';
+  btn.textContent = isHidden ? '🙈' : '👁';
+  // Mantener foco en el input
+  input.focus();
 });
 
 // ════════════════════════════════════════

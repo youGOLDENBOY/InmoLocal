@@ -21,7 +21,6 @@ const storage = firebase.storage();
 
 // ════════════════════════════════════════════════════
 // AUTH — LISTENER GLOBAL
-// Alterna navbar entre estado guest/user en todas las páginas
 // ════════════════════════════════════════════════════
 auth.onAuthStateChanged(async (user) => {
   const authGuest      = document.getElementById('authGuest');
@@ -42,19 +41,24 @@ auth.onAuthStateChanged(async (user) => {
     if (page.includes('login.html') || page.includes('registro.html')) {
       const redirect = new URLSearchParams(window.location.search).get('redirect') || 'index.html';
       window.location.href = redirect;
+      return;
     }
 
   } else {
     authGuest?.classList.remove('hidden');
     authUser?.classList.add('hidden');
 
-    // Redirigir a login si la página requiere autenticación
-    const protegidas = ['publicar.html', 'chat.html', 'perfil.html', 'mis-propiedades.html'];
+    // Redirigir a login solo si la página lo requiere
+    const protegidas = ['publicar.html', 'chat.html', 'perfil.html'];
     const page = window.location.pathname;
     if (protegidas.some(p => page.includes(p))) {
       window.location.href = 'login.html?redirect=' + encodeURIComponent(window.location.pathname);
+      return;
     }
   }
+
+  // Llamar actualizarNavbar de main.js si existe (para el menú mobile)
+  if (typeof actualizarNavbar === 'function') actualizarNavbar(user);
 });
 
 // ════════════════════════════════════════════════════
