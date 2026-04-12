@@ -626,3 +626,78 @@
   .features-grid { grid-template-columns: repeat(2, 1fr); }
   .auth-box { padding: 28px 20px; }
 }
+
+/* ═══════════════════════════ SKELETON LOADING ═══════════════════════════ */
+.props-loading {
+  display: contents; /* se mezcla con el grid del padre */
+}
+.skeleton-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  height: 320px;
+  overflow: hidden;
+  position: relative;
+}
+.skeleton-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,.6) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.skeleton-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    /* imagen placeholder */
+    linear-gradient(var(--cream-dark) 200px, transparent 200px),
+    /* precio */
+    linear-gradient(var(--cream-dark) 1px, transparent 1px),
+    /* título */
+    linear-gradient(var(--cream-dark) 1px, transparent 1px),
+    /* features */
+    linear-gradient(var(--cream-dark) 1px, transparent 1px);
+  background-size: 100% 200px, 60% 20px, 80% 16px, 90% 12px;
+  background-position: 0 0, 16px 216px, 16px 244px, 16px 268px;
+  background-repeat: no-repeat;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* ═══════════════════════════ NO RESULTS ════════════════════════════════ */
+.no-results {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+  gap: 10px;
+}
+.no-results span { font-size: 48px; }
+.no-results p    { font-size: 15px; color: var(--text-light); }
+
+/* ═══════════════════════════ PROP CARD — MOBILE TOUCH ══════════════════ */
+@media (max-width: 600px) {
+  .prop-card { border-radius: var(--radius-md); }
+  .prop-img-wrap { height: 190px; }
+  .prop-body { padding: 14px; }
+  .prop-price { font-size: 20px; }
+  .prop-features { gap: 10px; font-size: 12px; padding: 10px 0; }
+  .prop-footer { flex-wrap: wrap; gap: 10px; }
+  .prop-actions { margin-left: auto; }
+  .btn-card { padding: 8px 14px; font-size: 12px; }
+  .btn-wpp  { width: 36px; height: 36px; }
+  .fav-btn  { width: 34px; height: 34px; font-size: 15px; }
+}
