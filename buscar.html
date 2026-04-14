@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Buscar propiedades — InmoLocal</title>
+  <meta name="description" content="Busca casas y apartamentos en venta y alquiler con filtros avanzados de precio, habitaciones y metros cuadrados.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    /* ── Página de búsqueda ── */
+    .buscar-page { padding: 100px 0 60px; min-height: 100vh; }
+
+    .buscar-header {
+      margin-bottom: 32px;
+    }
+    .buscar-header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 400;
+      margin-bottom: 6px;
+    }
+    .buscar-header p {
+      color: var(--text-light);
+      font-size: 14px;
+    }
+
+    /* ── Panel de filtros ── */
+    .filtros-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .filtros-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      align-items: end;
+    }
+
+    .filtro-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filtro-group label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-light);
+    }
+
+    .filtro-group select,
+    .filtro-group input {
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 14px;
+      width: 100%;
+      transition: border-color .2s;
+    }
+
+    .filtro-group select:focus,
+    .filtro-group input:focus {
+      outline: none;
+      border-color: var(--olive);
+    }
+
+    /* Rango de precio */
+    .precio-range {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+    .precio-range span { font-size: 12px; color: var(--text-light); text-align: center; }
+
+    .filtros-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    .btn-buscar {
+      background: var(--olive);
+      color: var(--bg);
+      border: none;
+      padding: 0 28px;
+      height: 44px;
+      border-radius: 10px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-buscar:hover { background: var(--olive-dark, #5a6e3a); }
+
+    .btn-limpiar {
+      background: transparent;
+      color: var(--text-light);
+      border: 1px solid var(--border);
+      padding: 0 20px;
+      height: 44px;
+      border-radius: 10px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .btn-limpiar:hover { border-color: var(--olive); color: var(--text); }
+
+    /* ── Chips de tipo rápido ── */
+    .tipo-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    /* ── Barra de resultados ── */
+    .resultados-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .resultados-count {
+      font-size: 14px;
+      color: var(--text-light);
+    }
+    .resultados-count strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .orden-select {
+      height: 38px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    /* ── Grid resultados ── */
+    .resultados-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    /* ── Estado vacío / loading ── */
+    .buscar-empty {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-light);
+      grid-column: 1 / -1;
+    }
+    .buscar-empty .empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .buscar-empty h3 { font-family: var(--font-display); font-weight: 400; font-size: 22px; margin-bottom: 8px; color: var(--text); }
+    .buscar-empty p  { font-size: 14px; margin-bottom: 24px; }
+
+    .buscar-loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-light);
+      font-size: 14px;
+      grid-column: 1 / -1;
+      padding: 40px 0;
+      justify-content: center;
+    }
+
+    .spin {
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--olive);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Hab. selector (botones numéricos) ── */
+    .num-selector {
+      display: flex;
+      gap: 4px;
+    }
+    .num-btn {
+      width: 38px; height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .num-btn:hover  { border-color: var(--olive); }
+    .num-btn.active { background: var(--olive); color: var(--bg); border-color: var(--olive); }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .filtros-grid { grid-template-columns: 1fr 1fr; }
+      .precio-range { grid-template-columns: 1fr; }
+      .precio-range span { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<header class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="logo">
+      <span class="logo-icon">⌂</span>
+      <span class="logo-text">InmoLocal</span>
+    </a>
+
+    <nav class="nav-links">
+      <a href="index.html">Inicio</a>
+      <a href="buscar.html" style="color:var(--olive)">Buscar</a>
+      <a href="publicar.html">Publicar</a>
+    </nav>
+
+    <div class="nav-actions">
+      <div class="auth-guest" id="authGuest">
+        <a href="login.html" class="btn-outline">Entrar</a>
+        <a href="registro.html" class="btn-primary">Registrarme</a>
+      </div>
+      <div class="auth-user hidden" id="authUser">
+        <a href="publicar.html" class="btn-primary">+ Publicar</a>
+        <div class="avatar-wrap" id="avatarWrap">
+          <div class="avatar-fallback" id="avatarFallback">U</div>
+          <div class="dropdown-menu">
+            <a href="perfil.html">👤 Mi perfil</a>
+            <a href="perfil.html">🏠 Mis propiedades</a>
+            <a href="chat.html">
+              💬 Mensajes
+              <span class="notif-badge hidden">0</span>
+            </a>
+            <hr>
+            <a href="#" id="logoutBtn" class="logout">🚪 Cerrar sesión</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="hamburger" id="hamburger" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main class="buscar-page">
+  <div class="container">
+
+    <div class="buscar-header">
+      <h1>Buscar propiedades</h1>
+      <p>Usa los filtros para encontrar exactamente lo que buscas</p>
+    </div>
+
+    <!-- ═══ PANEL DE FILTROS ═══ -->
+    <div class="filtros-panel">
+
+      <!-- Chips tipo rápido -->
+      <div class="tipo-chips">
+        <button class="chip active" data-tipo="" data-modal="">Todo</button>
+        <button class="chip" data-tipo="casa" data-modal="venta">Casas en venta</button>
+        <button class="chip" data-tipo="casa" data-modal="alquiler">Casas en alquiler</button>
+        <button class="chip" data-tipo="apartamento" data-modal="venta">Aptos. en venta</button>
+        <button class="chip" data-tipo="apartamento" data-modal="alquiler">Aptos. en alquiler</button>
+      </div>
+
+      <div class="filtros-grid">
+
+        <!-- Tipo -->
+        <div class="filtro-group">
+          <label>Tipo de propiedad</label>
+          <select id="fTipo">
+            <option value="">Cualquier tipo</option>
+            <option value="casa">Casa</option>
+            <option value="apartamento">Apartamento</option>
+          </select>
+        </div>
+
+        <!-- Modalidad -->
+        <div class="filtro-group">
+          <label>Modalidad</label>
+          <select id="fModalidad">
+            <option value="">Venta y alquiler</option>
+            <option value="venta">En venta</option>
+            <option value="alquiler">En alquiler</option>
+          </select>
+        </div>
+
+        <!-- Precio mínimo -->
+        <div class="filtro-group">
+          <label>Precio mínimo (RD$)</label>
+          <input type="number" id="fPrecioMin" placeholder="0" min="0" step="1000">
+        </div>
+
+        <!-- Precio máximo -->
+        <div class="filtro-group">
+          <label>Precio máximo (RD$)</label>
+          <input type="number" id="fPrecioMax" placeholder="Sin límite" min="0" step="1000">
+        </div>
+
+        <!-- Habitaciones -->
+        <div class="filtro-group">
+          <label>Habitaciones (mín.)</label>
+          <div class="num-selector" id="habSelector">
+            <button class="num-btn active" data-val="0">Todas</button>
+            <button class="num-btn" data-val="1">1+</button>
+            <button class="num-btn" data-val="2">2+</button>
+            <button class="num-btn" data-val="3">3+</button>
+            <button class="num-btn" data-val="4">4+</button>
+          </div>
+          <input type="hidden" id="fHabitaciones" value="0">
+        </div>
+
+        <!-- Baños -->
+        <div class="filtro-group">
+          <label>Baños (mín.)</label>
+          <div class="num-selector" id="banosSelector">
+            <button class="num-btn active" data-val="0">Todos</button>
+            <button class="num-btn" data-val="1">1+</button>
+            <button class="num-btn" data-val="2">2+</button>
+            <button class="num-btn" data-val="3">3+</button>
+          </div>
+          <input type="hidden" id="fBanos" value="0">
+        </div>
+
+        <!-- Metros cuadrados -->
+        <div class="filtro-group">
+          <label>Metros cuadrados (mín.)</label>
+          <input type="number" id="fMetros" placeholder="0 m²" min="0" step="10">
+        </div>
+
+        <!-- Amenidades -->
+        <div class="filtro-group">
+          <label>Incluye</label>
+          <select id="fAmenidad">
+            <option value="">Cualquier amenidad</option>
+            <option value="garage">🚗 Garaje</option>
+            <option value="piscina">🏊 Piscina</option>
+            <option value="patio">🌿 Patio/Jardín</option>
+            <option value="amueblado">🛋️ Amueblado</option>
+            <option value="ac">❄️ Aire acondicionado</option>
+            <option value="planta">⚡ Planta eléctrica</option>
+            <option value="cisterna">💧 Cisterna</option>
+          </select>
+        </div>
+
+      </div><!-- /filtros-grid -->
+
+      <div class="filtros-actions">
+        <button class="btn-buscar" id="btnBuscar">
+          🔍 Buscar propiedades
+        </button>
+        <button class="btn-limpiar" id="btnLimpiar">Limpiar filtros</button>
+      </div>
+
+    </div><!-- /filtros-panel -->
+
+    <!-- ═══ RESULTADOS ═══ -->
+    <div class="resultados-bar">
+      <p class="resultados-count" id="resultadosCount">
+        Mostrando <strong id="numResultados">—</strong> propiedades
+      </p>
+      <select class="orden-select" id="ordenSelect">
+        <option value="reciente">Más recientes primero</option>
+        <option value="precio-asc">Precio: menor a mayor</option>
+        <option value="precio-desc">Precio: mayor a menor</option>
+        <option value="destacadas">Destacadas primero</option>
+      </select>
+    </div>
+
+    <div class="resultados-grid" id="resultadosGrid">
+      <div class="buscar-loading">
+        <div class="spin"></div>
+        <span>Cargando propiedades...</span>
+      </div>
+    </div>
+
+    <div class="load-more-wrap" style="margin-top:32px">
+      <button class="btn-load-more hidden" id="loadMoreBuscar">Cargar más resultados</button>
+    </div>
+
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-bottom">
+      <p>© 2026 InmoLocal. Hecho con ❤️ para nuestra comunidad.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="js/firebase.js"></script>
+<script src="js/buscar.js"></script>
+
+</body>
+</html>

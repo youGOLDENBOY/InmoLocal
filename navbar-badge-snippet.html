@@ -1,0 +1,82 @@
+<!-- ══════════════════════════════════════════════════════
+     BADGE DE NOTIFICACIONES — pegar en TODOS los navbars
+     Reemplaza el enlace de Mensajes en nav-links y mobile-menu
+     ══════════════════════════════════════════════════════ -->
+
+<!-- En nav-links (desktop) — reemplaza el <a href="chat.html"> simple -->
+<a href="chat.html" class="nav-link-msgs">
+  Mensajes
+  <span class="notif-badge hidden">0</span>
+</a>
+
+<!-- En dropdown del avatar (dentro de .dropdown-menu) -->
+<a href="chat.html">
+  💬 Mensajes
+  <span class="notif-badge hidden">0</span>
+</a>
+
+<!-- En mobile-menu (dentro de #mobileLoggedLinks) -->
+<a href="chat.html">
+  💬 Mis mensajes
+  <span class="notif-badge hidden">0</span>
+</a>
+
+
+<!-- ══════════════════════════════════════════════════════
+     CSS A AGREGAR EN components.css o main.css
+     ══════════════════════════════════════════════════════ -->
+<style>
+/* Badge de notificaciones */
+.nav-link-msgs,
+.dropdown-menu a,
+#mobileLoggedLinks a {
+  position: relative;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  background: #e53e3e;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-body, sans-serif);
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+  pointer-events: none;
+  animation: badge-pop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.notif-badge.hidden {
+  display: none;
+}
+
+@keyframes badge-pop {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
+/* Banner de anuncio con imagen real */
+.ad-banner-img {
+  width: auto;
+  max-height: 40px;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.ad-real {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+}
+</style>

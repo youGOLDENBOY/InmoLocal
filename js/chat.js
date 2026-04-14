@@ -1,33 +1,42 @@
 /* ═══════════════════════════════════════════════════════════
-   InmoLocal — chat.js  —  Firebase real
+   InmoLocal — chat.js — Firebase real
+   + Fix: noLeidos se resetea correctamente al abrir chat
+   + Badge del navbar se actualiza en tiempo real
 ═══════════════════════════════════════════════════════════ */
 
 const $ = id => document.getElementById(id);
 
-let currentUser     = null;
-let chatActualId    = null;
-let unsubscribeMsgs = null;
-let unsubscribeChats = null;
+let currentUser       = null;
+let chatActualId      = null;
+let unsubscribeMsgs   = null;
+let unsubscribeChats  = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged(user => {
     if (!user) { window.location.href = 'login.html'; return; }
     currentUser = user;
+
     cargarChats(user.uid);
     setupInput();
     setupSearch();
 
     // Si viene desde propiedad.html con parámetros
-    const params    = new URLSearchParams(window.location.search);
-    const vendorId  = params.get('vendor');
-    const propId    = params.get('prop');
-    if (vendorId && propId) {
-      iniciarOAbrirChat(vendorId, propId).then(chatId => abrirChat(chatId));
+    const params   = new URLSearchParams(window.location.search);
+    const vendorId = params.get('vendor');
+    const propId   = params.get('prop');
+    const chatId   = params.get('chat');
+
+    if (chatId) {
+      // Viene directo con el chatId
+      abrirChat(chatId);
+    } else if (vendorId && propId) {
+      iniciarOAbrirChat(vendorId, propId).then(id => abrirChat(id));
     }
   });
 });
 
 // ─── Cargar lista de conversaciones ───
+
 function cargarChats(userId) {
   if (unsubscribeChats) unsubscribeChats();
 
@@ -48,8 +57,7 @@ function cargarChats(userId) {
 
     for (const chat of chats) {
       const otroId = chat.participantes.find(id => id !== userId);
-      let otroNombre = 'Usuario';
-      let propTitulo = '';
+      let otroNombre = 'Usuario', propTitulo = '';
 
       try {
         const [userDoc, propDoc] = await Promise.all([
@@ -78,29 +86,40 @@ function cargarChats(userId) {
           <span class="chat-time">${hora}</span>
           ${noLeido > 0 ? `<span class="chat-unread">${noLeido}</span>` : ''}
         </div>`;
-      item.addEventListener('click', () => abrirChat(chat.id, otroNombre, ini, propTitulo, chat.propiedadId));
+
+      item.addEventListener('click', () =>
+        abrirChat(chat.id, otroNombre, ini, propTitulo, chat.propiedadId)
+      );
+
       list.appendChild(item);
     }
   });
 }
 
 // ─── Abrir conversación ───
+
 window.abrirChat = async function(chatId, nombre, ini, propTitulo, propId) {
   if (chatActualId === chatId) return;
 
-  // Si solo recibimos el ID (redirigido), obtener datos
+  // Si solo recibimos el ID, obtener datos del chat
   if (!nombre) {
-    const chatDoc = await db.collection('chats').doc(chatId).get();
-    const chatData = chatDoc.data();
-    const otroId = chatData.participantes.find(id => id !== currentUser.uid);
-    const [userDoc, propDoc] = await Promise.all([
-      db.collection('users').doc(otroId).get(),
-      db.collection('propiedades').doc(chatData.propiedadId).get()
-    ]);
-    nombre    = userDoc.data()?.nombre  || 'Usuario';
-    propTitulo = propDoc.data()?.titulo || '';
-    propId    = chatData.propiedadId;
-    ini       = nombre[0]?.toUpperCase() || '?';
+    try {
+      const chatDoc  = await db.collection('chats').doc(chatId).get();
+      const chatData = chatDoc.data();
+      if (!chatData) return;
+      const otroId = chatData.participantes.find(id => id !== currentUser.uid);
+      const [userDoc, propDoc] = await Promise.all([
+        db.collection('users').doc(otroId).get(),
+        db.collection('propiedades').doc(chatData.propiedadId).get()
+      ]);
+      nombre    = userDoc.data()?.nombre || 'Usuario';
+      propTitulo = propDoc.data()?.titulo || '';
+      propId    = chatData.propiedadId;
+      ini       = nombre[0]?.toUpperCase() || '?';
+    } catch (err) {
+      console.error('Error abriendo chat:', err);
+      return;
+    }
   }
 
   chatActualId = chatId;
@@ -108,15 +127,19 @@ window.abrirChat = async function(chatId, nombre, ini, propTitulo, propId) {
   // Marcar activo en lista
   document.querySelectorAll('.chat-item').forEach(el => {
     el.classList.toggle('active', el.dataset.chat === chatId);
+    // Limpiar badge visual de este chat
+    if (el.dataset.chat === chatId) {
+      el.querySelector('.chat-unread')?.remove();
+    }
   });
 
   // Llenar header
-  $('winAvatar').textContent = ini;
-  $('winName').textContent   = nombre;
-  $('winProp').textContent   = `🏠 ${propTitulo}`;
-  $('winPropLink').href      = `propiedad.html?id=${propId}`;
+  $('winAvatar').textContent  = ini;
+  $('winName').textContent    = nombre;
+  $('winProp').textContent    = `🏠 ${propTitulo}`;
+  $('winPropLink').href       = `propiedad.html?id=${propId}`;
 
-  // Mostrar ventana
+  // Mostrar ventana de chat
   $('chatEmptyState').classList.add('hidden');
   $('chatWindow').classList.remove('hidden');
   $('chatSidebar').classList.add('hidden-mobile');
@@ -127,13 +150,18 @@ window.abrirChat = async function(chatId, nombre, ini, propTitulo, propId) {
     renderMensajes(msgs);
   });
 
-  // Marcar mensajes como leídos
-  await db.collection('chats').doc(chatId).update({
-    [`noLeidos.${currentUser.uid}`]: 0
-  });
+  // ── FIX: Resetear noLeidos del usuario actual a 0 ──
+  try {
+    await db.collection('chats').doc(chatId).update({
+      [`noLeidos.${currentUser.uid}`]: 0
+    });
+  } catch (err) {
+    console.error('Error reseteando noLeidos:', err);
+  }
 };
 
 // ─── Render mensajes ───
+
 function renderMensajes(mensajes) {
   const container = $('chatMessages');
   if (!container) return;
@@ -142,12 +170,12 @@ function renderMensajes(mensajes) {
   container.innerHTML = '';
 
   mensajes.forEach((msg, i) => {
-    const fecha = msg.fecha?.toDate?.() || new Date();
+    const fecha     = msg.fecha?.toDate?.() || new Date();
     const prevFecha = mensajes[i - 1]?.fecha?.toDate?.();
 
     if (i === 0 || !mismoDia(prevFecha, fecha)) {
       const sep = document.createElement('div');
-      sep.className = 'chat-date-sep';
+      sep.className   = 'chat-date-sep';
       sep.textContent = formatFechaSep(fecha);
       container.appendChild(sep);
     }
@@ -164,6 +192,7 @@ function renderMensajes(mensajes) {
 }
 
 // ─── Enviar mensaje ───
+
 function setupInput() {
   const input   = $('chatInput');
   const sendBtn = $('chatSendBtn');
@@ -185,18 +214,19 @@ function setupInput() {
   });
 }
 
-// ─── Búsqueda ───
+// ─── Búsqueda de conversaciones ───
+
 function setupSearch() {
   $('chatSearch')?.addEventListener('input', e => {
     const q = e.target.value.toLowerCase();
     document.querySelectorAll('.chat-item').forEach(item => {
-      const text = item.textContent.toLowerCase();
-      item.style.display = text.includes(q) ? '' : 'none';
+      item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
     });
   });
 }
 
 // ─── Botón volver (móvil) ───
+
 $('btnBackMobile')?.addEventListener('click', () => {
   $('chatSidebar').classList.remove('hidden-mobile');
   $('chatEmptyState').classList.remove('hidden');
@@ -206,14 +236,17 @@ $('btnBackMobile')?.addEventListener('click', () => {
 });
 
 // ─── Helpers ───
+
 function scrollToBottom() {
   const msgs = $('chatMessages');
   if (msgs) msgs.scrollTop = msgs.scrollHeight;
 }
+
 function formatHora(fecha) {
   if (!fecha) return '';
   return fecha.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' });
 }
+
 function formatFechaSep(fecha) {
   const hoy  = new Date();
   const ayer = new Date(); ayer.setDate(hoy.getDate() - 1);
@@ -221,10 +254,12 @@ function formatFechaSep(fecha) {
   if (mismoDia(fecha, ayer)) return 'Ayer';
   return fecha.toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric', month: 'long' });
 }
+
 function mismoDia(a, b) {
   if (!a || !b) return false;
   return new Date(a).toDateString() === new Date(b).toDateString();
 }
+
 function escapeHtml(t) {
-  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return (t || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
